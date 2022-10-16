@@ -1,0 +1,65 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.actors;
+
+import apx.lang.AsyncChan;
+import apx.lang.IChan;
+import apx.lang.serial.SerializationCloner;
+
+/**
+ * An actor application is broken up into completely independent processes (Actors). 
+ * They communicate with each other through messages, thus eliminating shared state, and thus 
+ * eliminating problems of data corruption and deadlocks.
+ * 
+ * The Main class instantiates and passes in Mailboxes to the Actors. Each actor gets 
+ * a reference to its Mailbox.
+ * 
+ * In this sample, three actors form a pipeline
+ *  - an actor downloads pages from the world wide web, 
+ *  - an actor indexes them into a multimap 
+ *  - and then an actor writes the multimap into a database table.
+ *  
+ *  How to read this example
+ *  ------------------------
+ *   - To understand how to implement an actor with Ateji PX, refer to the Actor class,
+ *   - To understand how the actions described below are implemented, refer to the 
+ *     DownloadActor, IndexActor and DatabaseActor classes.
+ */
+public class Main {
+
+	public static void main(String[] args){
+
+		
+		String[] sitesToIndex = {
+				"http://www.ateji.com/",
+				"http://ateji.blogspot.com/",
+				"http://forums.ateji.com/",
+		};
+		
+		IChan<Message> downloadActorMailBox = new AsyncChan<Message>(new SerializationCloner<Message>());
+		IChan<Message> indexActorMailBox = new AsyncChan<Message>(new SerializationCloner<Message>());
+		IChan<Message> dataBaseActorMailBox = new AsyncChan<Message>(new SerializationCloner<Message>());
+		DatabaseActor writeActor = new DatabaseActor(dataBaseActorMailBox);
+		IndexActor indexActor = new IndexActor(indexActorMailBox, writeActor);
+		DownloadActor downloadActor = new DownloadActor(downloadActorMailBox, indexActor);		
+		[
+		||
+			writeActor.run();
+		||
+		 	downloadActor.run();
+		||
+			indexActor.run();
+		||
+			for(String siteToIndex : sitesToIndex) {
+				 downloadActorMailBox ! new Message("download", siteToIndex);
+			}
+			downloadActorMailBox ! Message.stopMessage;
+		]
+				
+	}
+	
+	
+	
+}

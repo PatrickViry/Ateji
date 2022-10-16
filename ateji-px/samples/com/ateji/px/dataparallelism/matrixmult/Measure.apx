@@ -1,0 +1,82 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.dataparallelism.matrixmult;
+
+import java.text.DecimalFormat;
+
+/**
+ * This class embeds the logic to make a proper comparative performance
+ * measurement between different algorithms for matrix multiplication.
+ */
+abstract class Measure
+{
+	
+	// C = A * B
+	
+	private final double[][] C;
+	
+	void measure()
+	{
+		long start, end;
+		final int count = 20;
+		final long[] time[count];
+
+		for(int c=0; c<count; c++) {
+			for(int i : C.length, int j : C[i].length) {
+				C[i][j] = 0.0;
+			}
+			
+			start = System.nanoTime();
+			run();
+			end = System.nanoTime();
+			time[c] = (end - start) / 1000000; // convert to ms
+		}
+		
+		// average value after removing the first 3 entries
+		long meanTime = 0;
+		for(int c=3; c<count; c++) {
+			meanTime += time[c];
+		}
+		meanTime = meanTime / (count - 3);
+		
+		System.out.print(name() + ": mean time = " + meanTime + " ms; ");
+		
+		// standard_deviation after removing the first 3 entries
+		long sum = 0;
+		for (int c=3; c<count; c++){
+			sum+= (time[c] - meanTime) * (time[c] - meanTime);
+		}
+		double sigma = Math.sqrt(sum / (count - 3));
+		
+		System.out.print("standard deviation = "+df.format(sigma)+" ms; ( ");
+		
+		for(int c=0; c<count; c++) {
+			System.out.print(time[c] + " ");
+		}
+		System.out.println(")");
+		
+		// check if the result was correct
+		for(int i : C.length, int j : C[i].length) {
+			if(C[i][j] != MatrixMult.check[i][j]) {
+				throw new Error("Incorrect result");
+			}
+		}
+	}
+	
+	abstract String name();
+	
+	abstract void run();
+	
+	Measure(double [][] C)
+	{
+		this.C = C;
+	}
+	
+	private static DecimalFormat df = new DecimalFormat();
+	static {
+		df.setMaximumFractionDigits(3);
+	}
+
+}

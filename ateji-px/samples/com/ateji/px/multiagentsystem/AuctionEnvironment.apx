@@ -1,0 +1,55 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.multiagentsystem;
+
+import java.util.List;
+
+/**
+ * The environment must react to the actions of agents (through actuators) and
+ * warn them of the evolution of the system (through sensors).
+ */
+public class AuctionEnvironment
+{
+
+	public void run() 
+	{		
+		int bestBid = 0;
+		while(true) {
+				select {
+					// receive a bid from one of the bidders
+					// this is equivalent to having a case for each bidder
+					when (Bidder bidder : bidders) bidder.bidActuator ? int bid: {
+						if(bid > bestBid) {
+							bestBid=bid;
+							System.out.println(bidder + " offers " + bestBid);
+							for(Bidder b : bidders,  if (b!=bidder)) {
+								// inform all other bidders
+								b.bidSensor ! bestBid;
+							}
+						}
+					}
+					// receive a signal when a bidder quits the auction;
+					when (Bidder bidder : bidders) bidder.quitAuctionActuator ?: {
+						bidders.remove(bidder);
+						System.out.println(bidder+" quits");
+						if (bidders.size() == 1) {
+							// inform the last bidder that he wins the auction
+							bidders.get(0).winAuctionSensor ! ;
+							// close the environment
+							return;
+						}
+					}
+				}
+		}
+	}
+	
+	private final List<Bidder> bidders;
+
+	public AuctionEnvironment(List<Bidder> bidders) 
+	{
+		this.bidders = bidders;
+	}
+	
+}

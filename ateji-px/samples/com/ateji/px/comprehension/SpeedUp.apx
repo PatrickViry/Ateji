@@ -1,0 +1,77 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.comprehension;
+
+import com.ateji.px.comprehension.util.Measure;
+
+/**
+ * If you are not familiar with Ateji PX comprehensions, please refer to the Basics sample.
+ * 
+ * The purpose of this example is to compare the performance between sequential and 
+ * parallel comprehensions. The monoid chosen to compare those two comprehensions is 
+ * the sum.
+ * 
+ * Run this sample to get the result.
+ */
+public class SpeedUp {
+
+	/**
+	 * sequentialSum measures the algorithm when the comprehension
+	 * is sequential.
+	 */
+	private static Measure sequentialSum = new Measure(){
+
+		@Override
+		public String name(){
+			return "sequential sum";
+		}
+
+		@Override
+		public void run(){
+			`+ for (int i : I, int j : J) (i*j); 
+		}
+		
+	};
+
+	/**
+	 * parallelSum measures the algorithm when the comprehension
+	 * is parallel.
+	 */
+	private static Measure parallelSum = new Measure(){
+
+		@Override
+		public String name(){
+			return "parallel sum";
+		}
+
+		@Override
+		public void run(){
+			`+ for || (int i : I, int j : J) (i*j); 
+		}
+		
+	};
+	
+	public static void main(String[] args){
+		System.out.println("PERFORMANCE COMPARISON BETWEEN SEQUENTIAL AND PARALLEL COMPREHENSIONS");
+		System.out.println();
+		System.out.println("sequential sum:");
+		System.out.println("\t`+ for (int i : I, int j : J) (i*j);");
+		System.out.println("parallel sum:");
+		System.out.println("\t`+ for || (int i : I, int j : J) (i*j);");
+		System.out.println("data size : I = "+I+"; J = "+J);
+		System.out.println();
+		System.out.println("Wait for the result...");
+		long seqTime = sequentialSum.measure();
+		long parTime = parallelSum.measure();
+		System.out.println();
+		System.out.println("Speed up = "+1.0*seqTime/parTime);
+		System.out.println("Available processors = "+Runtime.getRuntime().availableProcessors());				
+	}
+
+	// data size
+	final static int I = 10000;
+	final static int J = 10000;
+	
+}

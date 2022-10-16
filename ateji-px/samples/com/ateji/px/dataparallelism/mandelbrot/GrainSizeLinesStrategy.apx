@@ -1,0 +1,41 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.dataparallelism.mandelbrot;
+
+/**
+ * This example shows how to share the computation with all processors of the
+ * machine by splitting the parallel block lines iterator.
+ * 
+ * Visually, several lines of the Mandelbrot set are displayed in parallel.
+ */
+public class GrainSizeLinesStrategy extends MandelbrotSet
+{
+
+	@Override
+	public void runStrategy()
+	{
+		
+		 // The indication '#BlockSize(grainSize)' splits the iterator 'iy'
+		 // (the lines) in blocks of size 'grainSize'.
+		 for || (#BlockSize(blockSize), int iy : ny, int ix : nx) {
+		 	computeAndDraw(ix, iy);
+		 }
+		
+	}
+	
+	@Override
+	public String title()
+	{
+		return "Lines split in blocks of size " + blockSize;
+	}
+	
+	final int blockSize = 10;
+
+	public GrainSizeLinesStrategy(int nx, int ny)
+	{
+		super(nx, ny);
+	}
+
+}

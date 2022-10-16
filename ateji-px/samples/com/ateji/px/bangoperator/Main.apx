@@ -1,0 +1,50 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.bangoperator;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * This sample demonstrates how to use the replication operator ||* (also called bang).
+ * The two important operations are:
+ *    - Bang replication and then creation of a new branches
+ *    - Termination of a branch of type bang.
+ *    
+ * In this example, a money changer knows the conversion rate between the euro and the US dollar. 
+ * It uses a bang to listen and respond to the requests that are sent.
+ * 
+ */
+public class Main
+{
+	 
+	public static void main(String[] args)
+	{
+		// At the topmost level,the money changer program is ran in parallel with
+		// the clients. 
+		[
+			|| 
+			MoneyChanger moneyChanger = new MoneyChanger();
+			moneyChanger.run();
+				
+			|| 
+			// List of clients that will connect to the money changer.
+			List<Client> clients = new ArrayList<Client>();
+			{
+				clients.add(new Client(1));
+				clients.add(new Client(100));
+				clients.add(new Client(175));
+			}
+			[
+				 || (Client client : clients) {
+					 client.run();
+				 }
+			]
+			// Termination of the money changer is handled by closing the channel.
+			MoneyChanger.queryChannel.close();
+		]
+	}
+	
+}

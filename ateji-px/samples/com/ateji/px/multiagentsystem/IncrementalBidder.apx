@@ -1,0 +1,58 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.multiagentsystem;
+
+import apx.lang.IChan;
+import apx.lang.Signal;
+
+/**
+ * The strategy of IncrementalBidder is to increment each bid by one
+ * until a maximum offer is reached.
+ */
+public class IncrementalBidder extends Bidder
+{
+
+	@Override
+	public void run()
+	{
+		int nextBid = 0;
+		boolean exit = false;
+		while(true) {
+			// The agent will react to every interaction it has with the environment:
+			//   - it bids until it has reached its maximum,
+			//   - it quits when a higher bid was made, and
+			//   - it returns when it wins or when it quits.
+			select {
+			when ( if (nextBid != 0) ) bidActuator ! nextBid: nextBid = 0;
+			when bidSensor ? int bid: {
+				if(bid + 1 <= maxOffer) 
+				{
+					nextBid = bid + 1;
+				}
+				else
+				{
+					exit = true;
+				}
+			}
+			when ( if (exit) ) quitAuctionActuator !: return;
+			when winAuctionSensor? : {
+				System.out.println(name+" wins");
+				return;
+			}
+			}
+		}
+	}
+
+	private final int maxOffer;
+
+	public IncrementalBidder(String name, int maxOffer,
+			IChan<Integer> bidSensor, Signal winAuctionSensor,
+			IChan<Integer> bidActuator, Signal quitAuctionActuator)
+	{
+		super(name, bidSensor, winAuctionSensor, bidActuator, quitAuctionActuator);
+		this.maxOffer = maxOffer;
+	}
+
+}

@@ -1,0 +1,60 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.bangoperator;
+
+import apx.lang.Chan;
+import apx.lang.IChan;
+
+/**
+ * The trick to implement the money changer is to use the Ateji PX replication
+ * operator.
+ */ 
+public class MoneyChanger
+{
+
+	void run()
+	{
+		[
+		 	// ||* is a replication operator (also called bang). It may be seen
+		 	// as a process which always creates new branches. As a typical
+		 	// example, bang models a network service.
+			// 
+			// In Ateji PX, to control the number of created branches, a bang is
+		 	// bound to a message exchange. 
+			// 
+			// Here, MoneyChanger waits for new queries and replies to them in
+		 	// parallel.
+		 	//
+		 	// MoneyChanger will terminate as soon as the channel queryChannel
+		 	// is closed.
+		 	||* queryChannel ? Query query :		 		
+		 		work(query);
+		]
+	}
+
+	/**
+	 * Convert euros into dollars and send the answer on a private channel.
+	 */
+	private void work(Query query)
+	{
+		Double euros = query.getEuros();
+		// private channel between the client and the money changer
+		Chan<Double> reply = query.getReplyChan(); 
+		reply ! eurosToDollars(euros);
+	}
+
+	// 1 Euro = 1.4008 U.S. Dollars
+	private double eurosToDollars(double euros)
+	{
+		return 1.4008 * euros;
+	}
+	
+	/**
+	 * Publicly available channel on which queries of money to change are sent.
+	 */
+	public static IChan<Query> queryChannel =
+		new Chan<Query>();
+
+}

@@ -1,0 +1,555 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.dataparallelism.matrixmult;
+
+/**
+ * The purpose of this example is to compare the performance of several
+ * algorithms for multiplication of matrices.
+ * 
+ * All algorithms are derived from the traditional method that uses three
+ * nested loops.	
+ * 
+ * The examples will show:
+ *  - the impact of the order of the three loops on performance, and
+ *  - the impact of split indications on performance.
+ *  
+ * Split indications are the way used by Ateji PX to achieve data parallelism.
+ * In the data parallelism model, each branch performs the same task on
+ * different pieces of data. Data parallelism focuses on distributing 
+ * the data across different parallel branches.
+ */
+public class MatrixMult
+{
+	// C[I][J] = A[I][K] * B[K][J]
+	
+	static final int I = 100;
+	static final int J = 200;
+	static final int K = 300;
+
+	static final double[][] A[I][K] = Math.random();
+	static final double[][] B[K][J] = Math.random();
+	static final double[][] C[I][J];
+	
+	// The first two examples show the same algorithm to calculate the product C = A * B.
+	// The first one does not use any split indication (the split is hard-coded by hand),
+	// while the second one does.
+	
+	/**
+	 * 'ijk_par_splitI' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k',
+	 *  - the code is parallel, and
+	 *  - the 'i' dimension is split.
+	 */
+	static Measure ijk_par_splitI = new Measure(C) {
+
+		@Override
+		void run() {
+			// Manually split the iterator I in nProcs pieces.			
+			for || (int i : I ,	int j : J) {
+				double res = 0.0;
+				for(int k : K) {
+					// Formula for calculating a product of matrices.
+					res += A[i][k]*B[k][j];
+				}
+				C[i][j] = res;
+			}
+		}
+
+		@Override
+		String name() { return "ijk_par_splitI"; }
+	};
+
+	/**
+	 * 'ijk_par_splitI_indic' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k',
+	 *  - the code is parallel,
+	 *  - the 'i' dimension is split, and
+	 *  - an Ateji PX split indication is used.
+	 */
+	static Measure ijk_par_splitI_indic = new Measure(C) {
+
+		@Override
+		void run() {			
+			// This parallel for splits matrices according to the indications given in the branches. 
+			// Its creates 'nProcs' parallel branches.  Each branch deals with 'I/nProcs' 
+			// iterations of the loop. The rest of the code is executed sequentially 
+			// in the branch.
+			// ijk_par_splitI_indic and ijk_par_splitI strategies are equivalent
+			for || (#BlockCount(nProcs), int i : I, int j : J) {  
+			  	double res = 0.0;
+			  	for(int k : K) {
+			  		// Formula for calculating a product of matrices.
+			  		res += A[i][k] * B[k][j];
+			  	}
+			  	C[i][j] = res; 
+			}
+			
+		}
+		
+		@Override
+		String name() { return "ijk_par_splitI_indic"; }
+	};
+	
+	
+	
+	// This matrix is used to verify that all the algorithms are consistent with each other.
+	static double[][] check;
+
+	static final int nProcs = Runtime.getRuntime().availableProcessors();
+	
+	public static void main(String[] args)
+	{
+		checkMatrix();
+	
+		System.out.println(
+				"Performance measurements should take into account the JVM \"warm-up\".\n" +
+				"The first two or three timings are often much larger.\n" +
+				"Different runs may also give slightly different results.\n" +
+				"We calculate the mean of all runs except the first three ones.\n"
+		);
+		ijk_seq_iter.measure();
+
+		System.out.println(
+				"\n" +
+				"In particular, Java5-style iterators (1st line) get as fast as \n" +
+				"classical for loops (2nd line) after some warm-up time.\n" +
+				"(hence there is no need for a compile-time optimization, except possibly for memory)\n"
+		);
+		ijk_seq_iter.measure();
+		ijk_seq_classical.measure();
+
+		System.out.println(
+				"\n" +
+				"Computing intermediate results in a private variable has\n" +
+				"a small impact on performance.\n"
+		);
+		ijk_seq_iter.measure();
+		ijk_seq_iter_uncached.measure();
+
+		System.out.println(
+				"\n" +
+				"Before parallelizing for performance, start with an efficient\n" +
+				"sequential algorithm. The six following lines correspond to all permutations\n" +
+				"of the three loops in the naive multiplication algorithm. Depending on the\n" +
+				"configuration of the computer the performance can differ by a factor of 4x,\n" +
+				"showing the impact of cache access.\n"
+		);
+				
+		ijk_seq_iter.measure();
+		ikj_seq.measure();
+		jik_seq.measure();
+		jki_seq.measure();
+		kij_seq.measure();
+		kji_seq.measure();
+		
+		System.out.println(
+				"\n" +
+				"Specific optimisations of these codes, typically by memoizing intermediate results,\n" +
+				"can lead to even better performance\n"
+		);
+		jik_opt_seq.measure();
+				
+		System.out.println(
+				"\n" +
+				"Different strategies for parallelizing the ijk version:\n" +
+				" - sequential (for comparison)\n" +
+				" - split the i loop among the number of processors\n" +
+				" - split the j loop among the number of processors\n" +
+				" - make a branch for each i\n" +
+				" - make a branch for each i and j\n" +
+				"The split version is consistently the fastest, while making too many branches\n" +
+				"generally leads to a worse than sequential performance.\n" +
+				"(nProcs = " + nProcs + ")\n"
+		);
+		
+		ijk_seq_iter.measure();		
+		ijk_par_splitI.measure();
+		ijk_par_splitI_indic.measure();
+		ijk_par_splitJ.measure();
+		jik_par_splitJ_indic.measure();
+		ijk_par_I.measure();
+		ijk_par_IJ.measure();
+
+
+		System.out.println(
+				"\n" +
+				"Different strategies for parallelizing the jik version:\n" +
+				" - sequential (for comparison)\n" +
+				" - split the j loop among the number of processors\n" +
+				" - make a branch for each j\n" +
+				"Again the split version is the fastest; an almost linear speed-up\n" +
+				"should be achieved.\n" +
+				"(nProcs = " + nProcs + ")\n"
+		);
+		
+		jik_opt_seq.measure();
+		jik_opt_parJ.measure();
+		jik_opt_par_splitJ.measure();
+		
+		System.out.println(
+				"\n" +
+				"Depending on the configuration of the computer, optimizing the algorithm over\n" +
+				"the naive version can give a 10x speedup. Parallelizing this optimized version\n" +
+				"by splitting should give an almost linear speedup.\n" +
+				"(nProcs = " + nProcs + ")\n"
+		);
+		
+		System.out.println("\ndone");
+	}
+
+	static void checkMatrix()
+	{
+		check = new double[I][J];
+		for(int i : I, int j : J, int k : K) {
+			check[i][j] += A[i][k] * B[k][j];
+		}	
+	}
+	
+	/**
+	 * 'ijk_seq_iter' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k',
+	 *  - the code is sequential, and
+	 *  - the code uses Java iterators.
+	 */
+	static Measure ijk_seq_iter = new Measure(C) {
+		@Override
+		String name() { return "ijk_seq_iter"; }
+		@Override
+		void run() {
+			for(int i : I, int j : J) {
+				double res = 0.0;
+				for(int k : K) {
+					res += A[i][k] * B[k][j];
+				}
+				C[i][j] = res;
+			}		
+		}
+	};
+
+	/**
+	 * 'ijk_seq_iter_uncached' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k',
+	 *  - the code is sequential, and
+	 *  - the intermediate sum is not stored in a local variable.
+	 */
+	static Measure ijk_seq_iter_uncached = new Measure(C) {
+		@Override
+		String name() { return "ijk_seq_iter_uncached"; }
+		@Override
+		void run() {
+			for(int i : I, int j : J, int k : K) {
+				C[i][j] += A[i][k] * B[k][j];
+			}	
+		}
+	};
+
+	/**
+	 * 'ijk_seq_classical' measures the classical, naive algorithm which is
+	 * commonly found in mathematical books.
+	 */
+	static Measure ijk_seq_classical = new Measure(C) {
+		@Override
+		String name() { return "ijk_seq_classical"; }
+		@Override
+		void run() {
+			for(int i = 0; i <  I; i++) {
+				for(int j = 0; j <  J; j++) {
+					double res = 0.0;
+					for(int k :  K) {
+						res +=  A[i][k] *  B[k][j];
+					}
+					C[i][j] = res;
+				}
+			}
+		}
+	};
+
+	/**
+	 * 'ijk_par_splitJ' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k',
+	 *  - the code is parallel, and
+	 *  - the 'j' dimension is split.
+	 */
+	static Measure ijk_par_splitJ = new Measure(C) {
+		@Override
+		String name() { return "ijk_par_splitJ"; }
+		@Override
+		void run() {
+			[
+			||(int splitJ : nProcs) {
+				for(int i : I,
+			 		int j : splitJ*J/ nProcs .. (splitJ+1)*J/ nProcs-1) {
+			 			double res = 0.0;
+			 			for(int k :  K) {
+			 				res +=  A[i][k] *  B[k][j];
+			 			}
+			 			C[i][j] = res;
+			 	}
+			}
+			]
+		}
+	};
+	
+	/**
+	 * 'jik_par_splitJ_indic' measures the algorithm when:
+	 *  - the three loops are in the order 'j', 'i' and then 'k',
+	 *  - the code is parallel,
+	 *  - the 'j' dimension is split, and
+	 *  - an Ateji PX split indication is used.
+	 */
+	static Measure jik_par_splitJ_indic = new Measure(C) {
+		@Override
+		String name() { return "jik_par_splitJ_indic"; }
+		@Override
+		void run() {			
+			for ||(int j : J, int i : I) {
+				 double res = 0.0;
+				 for(int k :  K) {
+					 res +=  A[i][k] *  B[k][j];
+				 }
+				 C[i][j] = res;
+			}			
+		}
+	};
+
+	/**
+	 * 'ijk_par_I' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k',
+	 *  - the code is parallel, and
+	 *  - the 'I' dimension is parallelized.
+	 */
+	static Measure ijk_par_I = new Measure(C) {
+		@Override
+		String name() { return "ijk_par_I"; }
+		@Override
+		void run() {
+			[
+			||(int i :  I) {
+				for(int j :  J) {
+					double res = 0.0;
+					for(int k :  K) {
+						res +=  A[i][k] *  B[k][j];
+					}
+					C[i][j] = res;
+				}
+			}
+			]
+		}
+	};
+
+	/**
+	 * 'ijk_par_IJ' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k',
+	 *  - the code is parallel, and
+	 *  - both 'I' and 'J' dimensions are parallelized.
+	 */
+	static Measure ijk_par_IJ = new Measure(C) {
+		@Override
+		String name() { return "ijk_par_IJ"; }
+		@Override
+		void run() {
+			[
+			||(int i : I,
+			   int j : J) {
+				 double res = 0.0;
+				 for(int k : K) {
+					 res += A[i][k] * B[k][j];
+				 }
+				 C[i][j] = res;
+			}
+			]
+		}
+	};
+	
+	/**
+	 * 'ikj_seq' measures the algorithm when:
+	 *  - the three loops are in the order 'i', 'j' and then 'k', and
+	 *  - the code is sequential.
+	 */
+	static Measure ikj_seq = new Measure(C) {
+		@Override
+		String name() { return "ikj_seq"; }
+		@Override
+		void run() {
+			for (int i = 0; i < I; i++) {
+				for (int k = 0; k < K; k++) {
+					for (int j = 0; j < J; j++) {
+						 C[i][j] += A[i][k] * B[k][j];
+					}
+				}
+			}
+		}
+	};
+
+	/**
+	 * 'jik_seq' measures the algorithm when:
+	 *  - the three loops are in the order 'j', 'i' and then 'k', and
+	 *  - the code is sequential.
+	 */
+	static Measure jik_seq = new Measure(C) {
+		@Override
+		String name() { return "jik_seq"; }
+		@Override
+		void run() {
+			for (int j = 0; j < J; j++) {
+				for (int i = 0; i < I; i++) {
+					for (int k = 0; k < K; k++) {
+						C[i][j] += A[i][k] * B[k][j];
+					}
+				}
+			}
+		}
+	};
+
+	/**
+	 * 'jki_seq' measures the algorithm when:
+	 *  - the three loops are in the order 'j', 'k' and then 'i', and
+	 *  - the code is sequential.
+	 */
+	static Measure jki_seq = new Measure(C) {
+		@Override
+		String name() { return "jki_seq"; }
+		@Override
+		void run() {
+			for (int j = 0; j < J; j++) {
+				for (int k = 0; k < K; k++) {
+					for (int i = 0; i < I; i++) {
+						C[i][j] += A[i][k] * B[k][j];
+					}
+				}
+			}
+		}
+	};
+
+	/**
+	 * 'kij_seq' measures the algorithm when:
+	 *  - the three loops are in the order 'k', 'i' and then 'j', and
+	 *  - the code is sequential.
+	 */
+	static Measure kij_seq = new Measure(C) {
+		@Override
+		String name() { return "kij_seq"; }
+		@Override
+		void run() {
+			for (int k = 0; k < K; k++) {
+				for (int i = 0; i < I; i++) {
+					for (int j = 0; j < J; j++) {
+						C[i][j] += A[i][k] * B[k][j];
+					}
+				}
+			}
+		}
+	};
+
+	/**
+	 * 'kji_seq' measures the algorithm when:
+	 *  - the three loops are in the order 'k', 'j' and then 'i', and
+	 *  - the code is sequential.
+	 */
+	static Measure kji_seq = new Measure(C) {
+		@Override
+		String name() { return "kji_seq"; }
+		@Override
+		void run() {
+			for (int k = 0; k < K; k++) {
+				for (int j = 0; j < J; j++) {
+					for (int i = 0; i < I; i++) {
+						C[i][j] += A[i][k] * B[k][j];
+					}
+				}
+			}
+		}
+	};
+
+	/**
+	 * 'jik_opt_seq' measures the algorithm when:
+	 *  - the three loops are in the order 'j', 'i' and then 'k',
+	 *  - the code is sequential, and
+	 *  - the algorithm is optimized.
+	 */
+	static Measure jik_opt_seq = new Measure(C) {
+		@Override
+		String name() { return "jik_opt_seq"; }
+		@Override
+		void run() {
+			double[] bcolj = new double[K];
+			for (int j = 0; j < J; j++) {
+				for (int k = 0; k < K; k++) bcolj[k] = B[k][j];
+				for (int i = 0; i < I; i++) {
+					double[] arowi = A[i];
+					double sum = 0.0;
+					for (int k = 0; k < K; k++) {
+						sum += arowi[k] * bcolj[k];
+					}
+					C[i][j] = sum;
+				}
+			}
+		}
+	};
+
+	/**
+	 * 'jik_opt_parJ' measures the algorithm when:
+	 *  - the three loops are in the order 'j', 'i' and then 'k',
+	 *  - the code is parallel,
+	 *  - the 'J' dimension is parallelized, and
+	 *  - the algorithm is optimized.
+	 */
+	static Measure jik_opt_parJ = new Measure(C) {
+		@Override
+		String name() { return "jik_opt_parJ"; }
+		@Override
+		void run() {
+			[
+			||(int j : J) {
+				double[] bcolj = new double[K];
+				for (int k = 0; k < K; k++) {
+					bcolj[k] = B[k][j];
+				}
+				
+				for (int i = 0; i < I; i++) {
+					double[] arowi = A[i];
+					double sum = 0.0;
+					for (int k = 0; k < K; k++) {
+						sum += arowi[k] * bcolj[k];
+					}
+					C[i][j] = sum;
+				}
+			}
+			]
+		}
+	};
+
+	/**
+	 * 'jik_opt_parJ' measures the algorithm when:
+	 *  - the three loops are in the order 'j', 'i' and then 'k',
+	 *  - the code is parallel,
+	 *  - the 'J' dimension is parallelized,
+	 *  - a Ateji PX split indication is used, and
+	 *  - the algorithm is optimized.
+	 */
+	static Measure jik_opt_par_splitJ = new Measure(C) {
+		@Override
+		String name() { return "jik_opt_par_splitJ"; }
+		@Override
+		void run() {
+			for || (int j : J) {
+					double[] bcolj = new double[K];
+					for (int k = 0; k < K; k++) {
+						bcolj[k] = B[k][j];
+					}
+					
+					for (int i = 0; i < I; i++) {
+						double[] arowi =  A[i];
+						double sum = 0.0;
+						for (int k = 0; k < K; k++) {
+							sum += arowi[k] * bcolj[k];
+						}
+						C[i][j] = sum;
+					}
+				}
+			}
+	};
+
+}

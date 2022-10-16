@@ -1,0 +1,113 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.comprehension;
+
+import apx.util.monoid.Monoids;
+import java.util.Set;
+
+/**
+ * These example demonstrates the use of comprehensions. Launch the main
+ * method and read the explanation. 
+ */
+public class Basics
+{
+	@SuppressWarnings("unchecked")
+	public static void main(String[] args)
+	{		
+		final long n = 10000;	
+				
+		System.out.println("Comprehension syntax");
+		System.out.println("--------------------");
+		System.out.println("Comprehension expressions can express algebraic calculations in a simple way.\n"+
+				           "For example, a sum can be written in this form. In Ateji PX, you would write:\n"+
+                           "\tlong sum = `+ for (long i: 1 .. n, long j: 1 .. n) (i*j);\n"+				          
+				           "To parallelize the calculation, simply add the symbol '||' after the keyword 'for':\n"+
+				           "\t// Calculate the sum of i*j in parallel\n"+
+				           "\tlong sum = `+ for || (long i: 1 .. n, long j: 1 .. n) (i*j);");
+		System.out.println();
+		System.out.println("For example, for n = " + n + ", we obtain the following results:");
+
+		// Computes the sum of i*j from i=1 to i=n and from j=1 to j=n.
+		{ // Sequential computation
+			
+			long sum = `+ for (long i: 1 .. n, long j: 1 .. n) (i*j);
+			System.out.println("\tComputes the sum with a sequential comprehension: sum = " + sum );
+		}
+		{ // Parallel computation
+			long sum = `+ for || (long i: 1 .. n, long j: 1 .. n) (i*j);
+			System.out.println("\tComputes the sum with a parallel comprehension: sum = " + sum );
+		}
+		System.out.println("Please refer to the SpeedUp sample to compare performance of those two comprehensions");
+		
+		System.out.println();
+		
+		System.out.println("Filter syntax");
+		System.out.println("-------------");
+		System.out.println("A filter can be introduced to prune the values of the generators that will be iterated.");
+		System.out.println("To do this, use the 'if' syntax:");
+		System.out.println("\t// Computes the sum of only even numbers");
+		System.out.println("\tlong sum = `+ for (long i: 1 .. n, long j: 1 .. n, if (i*j%2 == 0)) (i*j);");
+		System.out.println();
+		{
+			System.out.println("For example, for n = " + n + ", we obtain the following result:");
+			long sum = `+ for (long i: 1 .. n, long j : 1 .. n, if (i*j%2 == 0)) (i*j) ;			
+			System.out.println("\tsum = " + sum);
+		}
+		System.out.println();
+		
+		System.out.println("Local variable");
+		System.out.println("--------------");
+		System.out.println("Finally a local variable may be introduced to simplify the writing of a comprehension.");
+		System.out.println("It can be very handy to share the result of a computation between the filter and the");
+		System.out.println("target expression, as in our exemple:");
+		System.out.println("\t// Compute once i*j in a local variable ij");
+		System.out.println("\tlong sum = `+ for (long i: 1 .. n, long j: 1 .. n, long ij = i*j, if (ij%2 == 0)) ij;");
+		System.out.println();
+		{
+			System.out.println("For example, for n = " + n + ", we obtain the following result:");
+			long sum = `+ for (long i: 1 .. n, long j: 1 .. n, long ij = i*j, if (ij%2 == 0)) ij;			
+			System.out.println("\tsum = " + sum);
+		}
+		System.out.println();
+
+		System.out.println("Monoids");
+		System.out.println("-------");		
+		System.out.println("Regarding the operator (called monoid) used to aggregate values, all associative\n" +
+		                   "Java binary operators can be used.");
+		System.out.println("For example, a multiplication can be written by using the '`*' monoid;\n" +
+				           "a boolean sum can be written by using the '`|' monoid:");
+		System.out.println();
+		{
+			System.out.println("\tlong prod = `* for (long i : 1 .. 10) i;");
+			long prod = `* for (long i : 1 .. 10) i;
+			System.out.println("\tprod = " + prod);
+		}
+		System.out.println();
+		{
+			System.out.println("\tboolean some = `| for (long i : 1 .. n) (i%129 == 0);");
+			boolean some = `| for (long i : 1 .. n) (i%129 == 0);
+			System.out.println("\tCheck whether an element satisfies the following property: (i%129 == 0)? " + some);
+		}
+		System.out.println();
+		System.out.println("More over, other monoids are provided by Ateji. They are in the library.");
+		System.out.println("The monoids calculating min and max are included as well as monoids building\n" +
+		                   "collections such as hashSet and arrayList.");
+		System.out.println();
+		{
+			long min = Monoids.min() for (long i : 1 .. n) i;
+			System.out.println("\tMonoids.min() for (long i : 1 .. n) i = " + min);			
+		}
+		System.out.println();
+		{
+			Set<Long> set = Monoids.hashSet() for (long i : 1 .. 10) i;
+			System.out.println("\tMonoids.hashSet() for (long i : 1 .. 10) i = " + set);			
+		}		
+		System.out.println();
+		System.out.println("The last type of monoids are those developed by users; they are presented\n" +
+		                   "in other examples of this package.");
+	}
+	
+}
+

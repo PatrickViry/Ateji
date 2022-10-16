@@ -1,0 +1,197 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.speculativeparallelism;
+
+import java.util.Arrays;
+
+/**
+ * Speculative execution is the execution of code whose result may not be needed.
+ * This sample shows how speculative execution can be parallelized with Ateji PX.
+ * 
+ * This example sorts an array in a speculative fashion: two sorting algorithms
+ * are run in parallel; the first to complete returns the final result and stops
+ * further computation that became redundant.
+ */
+public class Sort {
+
+	/**
+	 * Two sorting algorithms are run in parallel. The first to complete returns
+	 * the final result.
+	 * 
+	 * It is impossible to know which algorithm will return the result.
+	 * Nevertheless, the value returned by speculativeSort is deterministic.
+	 */
+	private static int[] speculativeSort(int[] array)
+	{
+		// Run in parallel both algorithms.
+		// The first algorithm to finish will execute a 'return' statement,
+		// which will stop the other algorithm and then return its result.
+		[
+		  // We do not want to use the default implementation for this parallel
+		  // composition, because the default implementation is very unfair.
+		  // For the speculative parallelism to work, some degree of fairness
+		  // is needed.
+		  // This is achieved by using the '#(Threads())' indication.		  
+		 	|| (#Thread()) return bubbleSortAlgorithm(array);
+		 	|| (#Thread()) return insertionSortAlgorithm(array);		 	
+		]		
+	}
+	
+	/**
+	 * bubbleSortAlgorithm implements a bubble sort algorithm.
+	 * It stops prematurely its computation if the other algorithm has been quicker.
+	 */
+	private static int[] bubbleSortAlgorithm(int[] array)
+	{
+		System.out.println("Bubble sort algorithm has started.");
+		
+		// copy the array
+		int[] t = array.clone();
+		
+		boolean swapped;
+		do {
+			// This code relates to the interruption.
+			//  - isInterrupted() returns true iff the computation has been interrupted 
+			//    by another branch
+			// - return left without completing the method calculation. The return value is never used.
+			if (Thread.currentThread().isInterrupted())
+			{
+				System.out.println("Bubble sort algorithm stops prematurely.");
+				return t;
+			}
+			
+			swapped = false;
+			for(int i : 0 .. t.length - 2)
+			{
+				if (t[i] > t[i+1])
+				{
+					swap(t, i, i+1);
+					swapped = true;
+				}
+			}
+		}
+		while (swapped);
+		
+		System.out.println("Bubble sort algorithm has completed.");
+		return t;
+	}
+
+	/**
+	 * insertionSortAlgorithm implements an insertion sort algorithm.
+	 * It stops prematurely its computation if the other algorithm has been quicker.
+	 */
+	private static int[] insertionSortAlgorithm(int[] array)
+	{
+		System.out.println("Insertion sort algorithm has started.");
+		
+		// copy the array
+		int[] t = array.clone();
+		
+		for (int i : 1 .. t.length-1)
+		{
+			// This code relates to the interruption.
+			//  - isInterrupted() returns true iff the computation has been interrupted 
+			//    by another branch
+			// - return left without completing the method calculation. The return value is never used.
+			if (Thread.currentThread().isInterrupted())
+			{
+				System.out.println("Insertion sort algorithm stops prematurely.");
+				return t;
+			}
+			
+			for (int k = i; k > 0; k--)
+			{
+				if (t[k] < t[k-1])
+				{
+					swap(t, k, k-1);	
+				}
+			}
+		}
+		
+		System.out.println("Insertion sort algorithm has completed.");
+		return t;
+	}	
+	
+	/**
+	 * Launch speculative calculation on three examples:
+	 *   - a sorted array,
+	 *   - a nearly sorted array, and
+	 *   - a randomized array.
+	 */
+	public static void main(String[] args)
+	{
+		int size = 5000;
+		
+		System.out.println("Sorting a sorted array:");
+		int[] sorted = sorted(size);
+		System.out.println("Sorted array: " + Arrays.toString(speculativeSort(sorted)));
+		System.out.println();
+		
+		System.out.println("Sorting a nearly sorted array:");
+		int[] nearlySorted = nearlySorted(size);
+		System.out.println("Sorted array: " + Arrays.toString(speculativeSort(nearlySorted)));
+		System.out.println();
+		
+		System.out.println("Sorting a random array:");
+		int[] randomized = randomized(size);
+		System.out.println("Sorted array: " + Arrays.toString(speculativeSort(randomized)));
+		System.out.println();
+	}
+	
+	/**
+	 * Swaps t[i] and t[j]
+	 */
+	private static void swap(int[] t, int i, int j)
+	{
+		int tmp = t[i];
+		t[i] = t[j];
+		t[j] = tmp;
+	}
+	
+	/**
+	 * Returns a sorted array with 'size' elements.
+	 */
+	private static int[] sorted(int size){
+		int[] t[int i: size] = i;
+		return t;
+	}
+	
+	/**
+	 * Returns a nearly sorted array with 'size' elements.
+	 */
+	private static int[] nearlySorted(int size){
+		int[] t[int i: size] = i;
+		for (int i: size/50) // randomize only 1/50th elements of t
+		{
+			int	i1 = random(i);
+			int i2 = random(size-1);
+			swap(t, i1, i2);
+		}
+		return t;
+	}
+	
+	/**
+	 * Returns a randomized array with 'size' elements.
+	 */
+	private static int[] randomized(int size){
+		int[] t[int i: size] = i;
+		for (int i: size)
+		{
+			int i2 = random(size-1);
+			swap(t, i, i2);
+		}
+		return t;
+	}
+	
+	/**
+	 * Returns a random integer i such that  0 <= i <= max
+	 */
+	private static int random(int max)
+	{
+		double r = Math.random();
+		return (int) Math.round(max*r);
+	}
+	
+}

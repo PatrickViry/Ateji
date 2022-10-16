@@ -1,0 +1,75 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.channels;
+
+import java.util.Arrays;
+
+import apx.lang.Chan;
+import apx.lang.IChan;
+import apx.lang.serial.SerializationCloner;
+
+/**
+ * This example shows some differences between two types of channels: 
+ *  - the channels that share references at an exchange, and
+ *  - the channels that copies values at an exchange.
+ *  
+ * Running the main method will display the result of the comparison.
+ */
+public class ShareOrCopy {
+
+	public static void main(String[] args) {
+		IChan<int[]> sharingChannel = new Chan<int[]>();
+		IChan<int[]> copyingChannel = new Chan<int[]>(new SerializationCloner<int[]>());
+
+		System.out.println("Sending an array over a channel that SHARES REFERENCES");
+		int[] value1 = {0, 1, 2};
+		[
+			||
+			sharingChannel ! value1;
+
+			||
+			sharingChannel ? int[] sharedValue;
+			compare(value1, sharedValue);
+		]
+		System.out.println("In short, the sent array and the received array are the SAME OBJECT.");
+		
+		System.out.println();
+		
+		System.out.println("Sending an array over a channel that COPIES VALUES");
+		int[] value2 = {0, 1, 2};
+		[
+			||
+			copyingChannel ! value2;
+			
+			||
+			copyingChannel ? int[] copiedValue;
+			compare(value2, copiedValue);
+		]
+		System.out.println("In short, the received array is A COPY of the sent array.");
+	}
+
+	private static void compare(int[] sentArray, int[] receivedArray) {
+		System.out.println("Comparing the sent array and the received array:");
+		
+		// compare the elements of the arrays
+		System.out.println("Do the two arrays contain the same elements?  "
+				+ Arrays.equals(sentArray, receivedArray));
+		System.out.println("\tSent array elements:      " + Arrays.toString(sentArray));
+		System.out.println("\tReceived array elements:  " + Arrays.toString(receivedArray));
+		
+		// compare the references of the arrays
+		System.out.println("Are the two arrays the same object?  " + (sentArray == receivedArray));
+		System.out.println("\tReference of the sent array:      " + sentArray.toString());
+		System.out.println("\tReference of the received array:  " + receivedArray.toString());
+		
+		// propagation of changes in one array to the other
+		sentArray[0]=7;
+		System.out.println("After setting the first element of the sent array to 7," +
+				" has the received array changed?  " + (sentArray[0] == receivedArray[0]));
+		System.out.println("\tSent array elements:      " + Arrays.toString(sentArray));
+		System.out.println("\tReceived array elements:  " + Arrays.toString(receivedArray));
+	}
+	
+}

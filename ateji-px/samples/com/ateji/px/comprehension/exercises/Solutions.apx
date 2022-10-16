@@ -1,0 +1,62 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.px.comprehension.exercises;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import apx.util.monoid.Monoids;
+
+public class Solutions {
+
+	@SuppressWarnings("unchecked")
+	public static void main(String[] args)
+	{		
+		// Computes the sum of all elements in the given data.	   
+		int sum = `+ for (int d : data) d;
+		System.out.println("sum = " + sum);
+		int parallelSum = `+ for || (int d : data) d;
+		System.out.println("parallelSum = " + parallelSum);
+
+		// Filter the element in the given data that are more than 10
+		Set<Integer> flat = Monoids.hashSet() for (int d : data, if ( d >= 10)) d;
+		System.out.println("flat = " + flat);
+		Set<Integer> parallelFlat = Monoids.hashSet() for || (int d : data, if ( d >= 10)) d;
+		System.out.println("parallelFlat = " + parallelFlat);
+
+		// Count of elements in the given data that are equal to 100.
+		int count = `+ for (int d : data, if (d == 100) ) 1;
+		System.out.println("count = " + count);
+		int parallelCount = `+ for (int d : data, if (d == 100)) 1;
+		System.out.println("parallelCount = " + parallelCount);
+
+		// some is true iff *some* element of the data is true
+		boolean some = `| for (boolean x : booleanData) x;
+		System.out.println("some = " + some);
+		boolean parallelSome = `| for || (boolean x : booleanData) x;
+		System.out.println("parallelSome = " + parallelSome);
+
+		// Computes the minimum of all elements in the given data.
+		Integer min = Monoids.min() for (int x : data) x;
+		System.out.println("parallelMin = " + min);
+		Integer parallelMin = Monoids.min() for || { x | int x : data };
+		System.out.println("parallelMin = " + parallelMin);
+		
+		// Filter the value in the given map that are more than 10.
+		Set<Integer> otherFilterMap = Monoids.hashSet() for (int v : map.values(), if (v>=10)) v;
+		System.out.println("otherFilterMap = " + otherFilterMap);
+		
+	}
+
+	public static int[] data[int i : 1000] = (int)Math.round(100*Math.sin(i));
+	public static int[] keys = data;
+	public static Map<Integer, Integer> map = new HashMap<Integer, Integer>();
+	static {
+		for (int key : keys) map.put(key, Math.abs(key));
+	}
+	public static boolean[] booleanData[int i : 1000] = (i%19 == 1);
+}
+

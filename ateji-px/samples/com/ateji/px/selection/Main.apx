@@ -1,0 +1,59 @@
+package com.ateji.px.selection;
+
+import apx.lang.InputStreamChan;
+
+/**
+ * Selection provides a way to bind the behaviour of a program to external events,
+ * by committing atomically to only one message transmission operation when several
+ * channels can simultaneously become ready for communication.
+ * 
+ * In this example, the external events occur when the user press keys on the keyboard.
+ * 
+ * The example take the form of a game. A player must copy a word suggested by the computer 
+ * in a limited time.
+ */
+public class Main {
+	
+	public static void main(String[] args) {
+		InputStreamChan<String> wordChan = new InputStreamChan<String>(System.in, new StringSerializer());
+		int timeLevel = 5000; // ms 
+		while (true) {
+			System.out.println("try to copy the following word in less than "+timeLevel+" milliseconds.");
+			String playWith = playWith();
+			System.out.println(playWith);
+			[		     
+			 ||
+			 // This will either receive a value on wordChan (case 1) or 
+			 // receive a timeout message (case 2), but never both.
+			 select {
+			// case 1 : the player submit a word and the program checks this proposition	 
+			 when wordChan ? String word : 					   
+				 if (playWith.equals(word)){
+					 timeLevel -= 100;
+					 System.out.println("Right");
+				 }
+				 else {
+					 timeLevel += 100;
+					 System.out.println("Wrong");
+				 }
+			 // case 2 : the player was too slow and it did not submit any word.
+			 timeout(timeLevel) : {
+				 System.out.println("end of the game"); 			       		        
+			 	 return; // Non local exit. See the speculative parallelism sample for more details.
+			 }
+			 }
+			 ]
+		}		
+	}
+	
+	public static String playWith() {
+		String[] words = {"world", "wide", "words", "more", "than", "pages", "on", "the", 
+				"origins", "history", "evolution", "and", "idiosyncrasies", "of",
+				"the", "english", "language", "worldwide", "new", "and", "words", "in"};
+		double r = Math.random();
+		int index = (int)Math.round(r*(words.length-1));		
+		return words[index];
+	}
+
+
+}
