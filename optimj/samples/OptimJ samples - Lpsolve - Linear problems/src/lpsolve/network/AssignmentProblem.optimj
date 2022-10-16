@@ -1,0 +1,103 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.network;
+
+import java.util.HashSet;
+import java.util.Set;
+import static com.ateji.monoid.Monoids.*;
+
+/**
+ * 
+ * Consider the table below which shows the cost of allocating 5 jobs to 5 machines.
+ *
+ *           Machine
+ *        A  B  C  D  E
+ * Job J0 22 30 26 16 25
+ *     J1 27 29 28 20 32
+ *     J2 33 25 21 29 23
+ *     J3 24 24 30 19 26
+ *     J4 30 33 32 37 31
+ *
+ * Which jobs should be allocated to which machines so as to minimise the total cost?
+ *
+ * It is clear that this problem can be viewed as a minimum cost network flow problem 
+ * as below where:
+ *
+ * each source (job) can supply one unit
+ * each sink (machine) demands one unit
+ * each arc has a capacity of one unit of flow and a cost taken from the table above.
+ *
+ */
+public class AssignmentProblem {
+
+
+
+
+	public static void main (String [] args)
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+
+        //	 nodes
+		Job J0 = {"J0"}, J1 = {"J1"}, J2 = {"J2"}, J3 = {"J3"}, J4 = {"J4"};
+		Machine A = {"A"}, B = {"B"}, C = {"C"}, D = {"D"}, E = {"E"};
+
+		HashSet<Node> nodes = {J0, J1, J2, J3, J4, A, B, C, D, E};		
+
+		double [Node] [Node] cost = 
+		{
+				J0 -> {A -> 22, B -> 30, C -> 26, D -> 16, E -> 25},
+				J1 -> {A -> 27, B -> 29, C -> 28, D -> 20, E -> 32},
+				J2 -> {A -> 33, B -> 25, C -> 21, D -> 29, E -> 23},
+				J3 -> {A -> 24, B -> 24, C -> 30, D -> 19, E -> 26},
+				J4 -> {A -> 30, B -> 33, C -> 32, D -> 37, E -> 31}};
+
+
+
+		// arcs = {(job, machine, cost[job, machine])}
+		Set<Arc> arcs = `hashSet(){Node job : nodes, Node machine : nodes, :job instanceof Job && machine instanceof Machine}{new Arc(job, machine, cost[job][machine], 1)};
+
+
+
+		// Job J0 is assigned to machine A
+		// Job J1 is assigned to machine D
+		// Job J2 is assigned to machine C
+		// Job J3 is assigned to machine B
+		// Job J4 is assigned to machine E
+
+		MinimumCostNetworkFlows problem = new MinimumCostNetworkFlows(new Network(nodes, arcs));
+		try
+		{
+			problem.extract();
+			if(problem.solve()){
+
+				for(Arc a : arcs)
+				{
+					if (problem.valueDouble(problem.x[a])>0)
+					{
+						System.out.println("Job "+a.from+" is assigned to machine "+a.to);
+					}
+				}			
+			}
+			else
+			{
+				System.out.println("no solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+	}
+
+}
+
+class Machine extends Node {
+	// net flow generated at a machine: -1
+	Machine(final String id){super(id, -1);}	
+}
+class Job extends Node{
+	// net flow generated at a job: +1
+	Job(final String id){super(id, +1);}
+}

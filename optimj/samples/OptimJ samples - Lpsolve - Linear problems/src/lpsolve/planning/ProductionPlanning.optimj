@@ -1,0 +1,77 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.planning;
+
+/**
+ * A company manufactures four variants of the same product and in the final part 
+ * of the manufacturing process there are assembly, polishing and packing operations.
+ * For each variant the time required for these operations is shown below (in minutes) 
+ * as is the profit per unit sold.
+ *
+ *                Assembly      Polish    Pack        Profit ($)
+ * Variant 0       2             3         2           1.50
+ *         1       4             2         3           2.50
+ *         2       3             3         2           3.00
+ *         3       7             4         5           4.50
+ *
+ * Given the current state of the labour force the company estimate that, each year, 
+ * they have 100000 minutes of assembly time, 50000 minutes of polishing time and 
+ * 60000 minutes of packing time available.
+ *  
+ * How many of each variant should the company make per year and what is the associated
+ * profit? 
+ */
+public model ProductionPlanning solver lpsolve {
+	//	xi be the number of units of variant i (i=0,1,2,3) made per year
+	final var double [] x [4]; 
+	// Tass be the number of minutes used in assembly per year
+	final var double Tass in 0 .. 100000;
+	// Tpol be the number of minutes used in polishing per year
+	final var double Tpol in 0 .. 50000;
+	// Tpac be the number of minutes used in packing per year
+	final var double Tpac in 0 .. 60000;
+	
+	constraints
+	{
+		// xi >= 0 i=1,2,3,4 
+		forall (int i : 0 .. 3) {x [i] >= 0;}
+		// operation time definition
+		Tass == 2*x[0] + 4*x[1] + 3*x[2] + 7*x[3]; // assembly
+		Tpol == 3*x[0] + 2*x[1] + 3*x[2] + 4*x[3]; // polish
+		Tpac == 2*x[0] + 3*x[1] + 2*x[2] + 5*x[3]; // pack		
+	}
+	
+	// maximize profit
+	maximize 1.5*x[0] + 2.5*x[1] + 3.0*x[2] + 4.5*x[3];
+	
+	public static void main (String [] args)
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		ProductionPlanning problem = new ProductionPlanning();
+		try {
+			problem.extract();
+			if (problem.solve())
+			{
+				// the optimal solution to this problem is
+				// x0=x3=0, x1=16000 and x2=6000 				
+				for (int i : 0 .. 3)
+				{
+					System.out.println("the company should  make "+problem.value(problem.x[i])+" pieces of variant "+i);
+				}
+				// maximize profit=58000
+				System.out.println("solution value: "+problem.objValue());
+			}
+			else
+			{
+				System.out.println("No solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+	}
+}

@@ -1,0 +1,67 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.columngeneration;
+
+/**
+*
+* Cut quantity times pattern p. 
+*
+*/
+public class Cut {
+
+	public final Pattern p;
+	public final int repetition;
+	
+	public Cut(final Pattern p, final int repetition) {
+		super();
+		this.p = p;
+		this.repetition = repetition;
+	}		
+	
+
+	@Override
+	public int hashCode() {
+		final int PRIME = 31;
+		int result = 1;
+		result = PRIME * result + ((p == null) ? 0 : p.hashCode());
+		result = PRIME * result + (int)repetition;
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		final Cut other = (Cut) obj;
+		if (p == null) {
+			if (other.p != null)
+				return false;
+		} else if (!p.equals(other.p))
+			return false;
+		if (repetition != other.repetition)
+			return false;
+		return true;
+	}
+
+
+
+	@Override
+	public String toString()
+	{
+		StringBuffer res = new StringBuffer();
+		res.append("    ");
+		res.append(repetition>9?"":" ");
+		res.append(repetition);
+		res.append("   |");
+		res.append(p.toString());
+		return res.toString();
+	}
+	
+}

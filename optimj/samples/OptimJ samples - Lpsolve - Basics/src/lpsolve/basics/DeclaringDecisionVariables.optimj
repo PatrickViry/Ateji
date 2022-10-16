@@ -1,0 +1,124 @@
+/*
+ * Copyright (c) 2007 ATEJI. All rights reserved.
+ */
+package lpsolve.basics;
+
+import java.util.*;
+
+/**
+ *  This sample shows what kind of decision variables can be declared with
+ *  the lpsolve solver.
+ */
+
+public model DeclaringDecisionVariables solver lpsolve
+{
+	/*  
+	 *  Decision variables must always be instanciated as soon as they
+	 *  are declared, this is why OptimJ performs automatic instanciation when
+	 *  you do not provide an explicit value (typically a constructor call
+	 *  or a bounds declaration).
+	 *  
+	 *  In other words, the following three declarations are equivalent:
+	 */
+	
+	// 1- default bounds:
+	// it is good practice not to rely on default bounds, since this may lead
+	// to longer computation time - OptimJ signals a warning here
+	final var double D1;
+	
+	// 2- explicit bounds with the bounds declaration syntax:
+	// this is the syntax you will probably use most of the time
+	// the spaces around '..' are mandatory
+	final var double D2 in -Double.MAX_VALUE .. Double.MAX_VALUE;
+	
+	// 3- explicit bounds with the constructor call syntax:
+	// the same as above, in a more classical Java style
+	final var double D3 = new var double(-Double.MAX_VALUE, Double.MAX_VALUE);
+	
+	// The 'final' keyword is a good programming practice that helps catch
+	// potential errors early: we strongly recommend that you specify it 
+	// whenever possible.
+	
+	
+	///////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 *  Floating-point variables.
+	 */ 
+	
+	// Only the 'double' type is supported by lpsolve.
+	final var double D in 0.0 .. 10.0;
+	
+	// the type 'float' is not supported by lpsolve
+	// var float F; -- error : not compatible with lpsolve
+	
+	
+	///////////////////////////////////////////////////////////////////////////
+
+	/*
+	 *  Integer (MIP) variables.
+	 */  
+
+	final var int I1; // default bounds are Integer.MIN_VALUE .. Integer.MAX_VALUE
+	final var int I2 in 0 .. 10;
+	final var int I3 = new var int(0, 10);
+	
+	
+	///////////////////////////////////////////////////////////////////////////
+
+	/*
+	 *  Collection-valued variables.
+	 *  
+	 *  They are internally encoded by integer MIP variables.
+	 */  
+	
+	// This defines S1 as a decision variable whose possible values are of type String
+	// and are taken among all the elements of the given collection.
+	// Note that the domain of S1 is defined when S1 is instanciated, and
+	// will not change if the collection is modified later.
+	
+	final Set<String> someSet = new HashSet<String>();
+	{
+		someSet.add("abc");
+		someSet.add("def");
+	}
+	
+	final var String S1 in someSet; // domain of S1 is "abc", "def"
+
+	
+	///////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 *  Arrays of variables.
+	 *  
+	 *  These are classical Java arrays, but OptimJ provides powerful constructions
+	 *  for initializating the array elements in a compact way. Note that these constructions
+	 *  are not specific to decision variables and could be used for any array.
+	 */
+	
+	// declare an array of 5 integer decision variables and instanciate them (without bounds)
+	// note the two pairs of brackets :
+	// - the first pair (var int []) defines the *type* : an array of int var
+	// - the second pair (AI1[5]) defines the *value* : an instance of an array with 5 elements
+	final var int[] A1[5]; 	// OptimJ signals a warning here because the variables in the array 
+							// are not bounded
+	
+	// bounds can be given with the following construction called a "generalized declaration" :
+	// the values given between parentheses are used to initialize the elements of the array
+	final var int[] A2[5] in 0 .. 10;
+	
+	// if the array index is an iterator, the variable defined by the iterator
+	// can be used in the bounds specification :
+	final var int[] A3[int i : 5] in 0 .. i; // i from 0 to 4.
+	
+	// arrays of decision variables can also be multidimensional,
+	// with multiple iterators
+	final var int[][] AA1[5][7]; // OptimJ signals a warning here because the variables in the array 
+								 // are not bounded
+	final var int[][] AA2[5][7] in 0 .. 10;
+	final var int[][] AA3[int i : 5][int j : 7] in i .. j;
+
+	// Remember: when defining arrays, brackets always come in pairs
+	// - once on the left side to specify a type
+	// - once on the right side to specify a dimension
+}

@@ -1,0 +1,76 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.traffic;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class RunAirTrafficControl {
+
+	public static void main (String [] args)
+	{
+		
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		// plane  0    1    2    3    4    5    6    7    8    9
+		// from   0:12 0:13 0:14 0:17 0:23 0:23 0:25 0:30 0:31 0:31
+		// to     0:15 0:16 0:23 0:21 0:35 0:35 0:30 0:40 0:41 0:40
+
+		ArrayList<AirPlane> airPlanes =			
+		{
+			{0, {00, 12}, {00, 15}},
+			// is equivalent to new AirPlane(0, new Time(00,12), new Time(00,15))
+			{1, {00, 13}, {00, 16}},
+			{2, {00, 14}, {00, 23}},
+			{3, {00, 17}, {00, 21}},
+			{4, {00, 23}, {00, 35}},
+			{5, {00, 23}, {00, 35}},
+			{6, {00, 25}, {00, 30}},
+			{7, {00, 30}, {00, 40}},
+			{8, {00, 31}, {00, 41}},
+			{9, {00, 31}, {00, 40}}
+		};
+		
+		
+		// Solution:
+		
+		// arrival time for plane 0  0:12
+		// arrival time for plane 1  0:15
+		// arrival time for plane 2  0:18
+		// arrival time for plane 3  0:21
+		// arrival time for plane 4  0:24
+		// arrival time for plane 5  0:27
+		// arrival time for plane 6  0:30
+		// arrival time for plane 7  0:33
+		// arrival time for plane 8  0:36
+		// arrival time for plane 9  0:40
+		
+		// delta = 3.0
+		
+		AirTrafficControl problem = new AirTrafficControl(airPlanes);
+		try{
+			problem.extract();
+			if (problem.solve()){
+				for (AirPlane plane : airPlanes)
+				{
+					System.out.println("arrival time for plane "+plane.j+" "+(new Time(problem.valueInt(problem.t[plane]))));
+				}
+				System.out.println("delta = "+problem.value(problem.delta));
+			}
+			else
+			{
+				System.out.println("no solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+
+	}
+
+}

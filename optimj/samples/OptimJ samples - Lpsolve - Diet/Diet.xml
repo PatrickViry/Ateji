@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet>
+
+<foods>
+<Beef cost = "3.19" fmin = "0" fmax = "100" A = "60" B1 = "10" B2 = "15" C = "20"/>
+<Chicken cost = "2.59" fmin = "0" fmax = "100" A ="8" B1 = "15" B2 = "20" C = "0"/> 
+<Fish cost = "2.29" fmin = "0" fmax = "100" A = "8" B1 = "15" B2 = "10" C ="0"/> 
+<Ham cost = "2.89" fmin = "0" fmax = "100" A = "40" B1 = "35" B2 = "10" C = "40"/>
+<Macaroni cost = "1.89" fmin = "0" fmax = "100" A = "15" B1 = "15" B2 = "15" C = "35"/>
+<MeatLoaf cost = "1.99" fmin = "0" fmax = "100" A="70" B1 = "15" B2 = "15" C = "30"/>
+<Spaghetti cost = "1.99" fmin = "0" fmax = "100" A="25" B1="25" B2 = "15" C = "50"/>
+<Turkey cost = "2.49" fmin = "0" fmax = "100" A="60" B1="15" B2="10" C = "60"/> 
+</foods>
+
+<vitamins>
+<A vmin = "700" vmax = "10000"/>
+<B1 vmin = "700" vmax = "10000"/>
+<B2 vmin = "700" vmax = "10000"/>
+<C vmin = "700" vmax = "10000"/>
+</vitamins>
+
+
+</diet>

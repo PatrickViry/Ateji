@@ -1,0 +1,111 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.planning;
+
+
+/**
+ * The production manager of a chemical plant is attempting to devise a shift pattern 
+ * for his workforce. Each day of every working week is divided into three eight-hour
+ * shift periods (00:01-08:00, 08:01-16:00, 16:01-24:00) denoted by night, day and 
+ * late respectively. The plant must be manned at all times and the minimum number of
+ * workers required for each of these shifts over any working week is as below:
+ *
+ *          Mon   Tues     Wed     Thur    Fri      Sat     Sun
+ * Night     5     3        2       4       3        2       2
+ * Day       7     8        9       5       7        2       5
+ * Late      9     10       10      7       11       2       2
+ *
+ * The union agreement governing acceptable shifts for workers is as follows:
+ *
+ *  1. Each worker is assigned to work either a night shift or a day shift or a late
+ *   shift and once a worker has been assigned to a shift they must remain on the 
+ *   same shift every day that they work.
+ *  2. Each worker works four consecutive days during any seven day period.
+ *
+ * In total there are currently 60 workers.
+ *
+ */
+public model Planning solver lpsolve  {
+
+	// Nij the number of workers starting their four consecutive work days on 
+	// day i and shift j.
+	// Night be shift 0, Day be shift 1, Late be shift 2.
+	
+	final var int [] [Day] N [Day.week][3] in 0 .. 60;
+	
+	
+	
+	// upper limit on the total number of workers of 60
+	constraints
+	{
+		sum{Day day : Day.week}{sum{int shift : 0 .. 2}{ N[day][shift]}} <= 60;
+	}
+	
+	// required [i][j] be the (known) number of workers required 
+	// on day i  and shift period j
+	private final int [] [Day] required = {
+			Day.monday    -> {5,7,9},
+			Day.tuesday   -> {3,8,10},
+			Day.wednesday -> {2,9,10},
+			Day.thursday  -> {4,5,7},
+			Day.friday    -> {3,7,11},
+			Day.saturday  -> {2,2,2},
+			Day.sunday    -> {2,5,2}};
+	
+	// Lower limit on the total number of workers required for each day/shift period
+	constraints
+	{
+		forall (Day startingDay : Day.week)
+		{
+			forall (int shift : 0 .. 2)
+			// 2. Each worker works four consecutive days during any seven day period.
+			sum{Day day : startingDay.fourPrecedingDays()}{N[day][shift]} >= required [startingDay] [shift];
+		}
+	}
+		
+	
+	
+	// reducing the size of the workforce
+	minimize sum{Day day : Day.week}{sum{int shift : 0 .. 2}{ N[day][shift]}};
+	
+	public static void main (String [] args)
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		Planning problem = new Planning();
+		
+		try {
+			problem.extract();
+			if (problem.solve())
+			{
+				// the optimal solution to this problem is N =
+				// 3 1 0 0 2 0 0
+				// 3 4 0 0 3 0 2
+				// 4 6 0 0 5 0 0  
+								
+				for (int  shift : 0 .. 2)
+				{
+					for (Day day : Day.week)
+					{
+						System.out.print(problem.value(problem.N[day][shift])+" ");
+					}
+					System.out.println();
+				}
+				// size of the workforce : 33.0
+				System.out.println("size of the workforce: "+problem.objValue());
+			}
+			else
+			{
+				System.out.println("No solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+	}
+	
+	
+}

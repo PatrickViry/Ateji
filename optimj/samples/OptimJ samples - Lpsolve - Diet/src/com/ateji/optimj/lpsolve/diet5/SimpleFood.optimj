@@ -1,0 +1,48 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.optimj.lpsolve.diet5;
+
+
+class SimpleFood implements Food {
+	public SimpleFood(String name, double cost,
+			float minQuantity, float maxQuantity, float[Vitamin] vitaminAmounts) {
+		this.name = name;
+		assert cost>0;
+		this.cost = cost;
+		assert minQuantity>=0;
+		this.minQuantity = minQuantity;
+		assert maxQuantity>=minQuantity;
+		this.maxQuantity = maxQuantity;
+		this.vitaminAmounts = vitaminAmounts;
+	}
+	
+	private final String name;
+	public String name() { return name; }
+	
+	private final double cost;
+	public double cost() { return cost; }
+	
+	private final float minQuantity;
+	public float minQuantity() { return minQuantity; }
+	
+	private final float maxQuantity;
+	public float maxQuantity() { return maxQuantity; }
+
+	private final float[Vitamin] vitaminAmounts;
+	public float[Vitamin] vitaminAmounts() { return vitaminAmounts; }
+	
+	@Override public String toString() {
+		return name;
+	}
+
+	@Override public boolean equals(Object o) {
+		return o instanceof SimpleFood
+		&& ((SimpleFood)o).name.equals(name);
+	}
+	
+	@Override public int hashCode() {
+		return name.hashCode();
+	}
+}

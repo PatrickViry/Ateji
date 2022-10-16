@@ -1,0 +1,40 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.columngeneration;
+
+/** 
+ * A pattern is one way of cutting one roll.
+ */
+
+public class Pattern {
+
+
+	public final int cost;
+	public final int[Order] fill; 
+	// fill[i] = 0 : item i does not appear in the pattern.
+	// fill[i] > 0 : item i appear fill[i] times in the pattern.
+	
+	public Pattern(final int cost, final int[Order] fill) {
+		super();
+		this.cost = cost;
+		this.fill = fill;
+	}
+	
+	@Override
+	public String toString()
+	{
+		StringBuilder res = new StringBuilder();
+
+		for (Order o : fill.keys) {
+			for (int f : 1 .. fill[o]) {
+				res.append(o.width);
+				res.append(" + ");
+			}
+		}
+
+		return res.toString();		
+	}
+	
+}

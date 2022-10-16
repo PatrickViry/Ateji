@@ -1,0 +1,67 @@
+/****************************
+ * Copyright (c) 2008 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.network;
+
+/**
+ * Minimum Cost Network Flows
+ * 
+ * Consider a directed network with n nodes. The decision variables are xij, the flow 
+ * through arc (i,j). The given information includes:
+ * cij : cost per unit of flow from i to j (may be negative),
+ * uij : capacity (or upper bound) on flow from i to j,
+ * bi : net flow generated at i. 
+ *
+ * This last value has a sign convention:
+ * bi > 0 if i is a supply node,
+ * bi < 0 if i is a demand node,
+ * bi = 0 if i is a transshipment node. 
+ *
+ * The objective is to minimize the total cost of sending the supply through the 
+ * network to satisfy the demand.
+ *
+ * 
+ * minimize sum{i,j}{cij * xij} 
+ * 
+ * sum{j}{xij} - sum{j}{xji} = bi for all nodes i.
+ * 0 <= xij <= uij
+ * 
+ */
+public model MinimumCostNetworkFlows extends MinimumCostNetworkFlowsParam  solver lpsolve{
+
+	
+	// 0 <= xij <= uij
+	final var double [Arc] x [Arc aij : network.arcs] in 0 .. aij.u;
+	
+	// minimize sum{i,j}{cij * xij} 
+	minimize sum{Arc aij : network.arcs} {aij.c * x [aij]};
+	
+	// sum{j}{xij} - sum{j}{xji} = bi for all nodes i.
+	constraints
+	{
+		forall(Node i : network.nodes)
+		{
+			sum{Arc aij : network.arcs, :aij.from.equals(i)}{x[aij]} - 
+			sum{Arc aji : network.arcs, :aji.to.equals(i)}{x[aji]} == i.b;
+		}
+	}
+	
+	
+	MinimumCostNetworkFlows(final Network network)
+	{
+		super(network);
+	}
+}
+
+class MinimumCostNetworkFlowsParam
+{
+	final Network network;
+	
+	MinimumCostNetworkFlowsParam(final Network network)
+	{
+		this.network = network;
+		// we will assume that the network is balanced
+		assert (sum{Node n : network.nodes}{n.b} == 0);
+	}
+}

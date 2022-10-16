@@ -1,0 +1,61 @@
+/****************************
+ * Copyright (c) 2008 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.traffic;
+
+import java.util.List;
+
+/**
+ * Air plane j (j = 1...n) arrives at the airport within the time interval [aj ; bj ]
+ * in the order of 1, 2, ... n. The airport wants to find the arrival time for each 
+ * air plane such that the metering time (inter-arrival time between two consecutive
+ * airplanes) is the greatest.
+ */
+public model AirTrafficControl extends AirTrafficControlParam solver lpsolve {
+
+	
+	AirTrafficControl(List<AirPlane> airPlanes)
+	{
+		super(airPlanes);
+	}
+	
+		// metering time. 
+		final var double delta in 0 .. Time.TWENTY_FOUR_HOURS;
+		
+		// arrival time (number of minutes from 00:00)
+		final var int [AirPlane] t [airPlanes] in 0 .. Time.TWENTY_FOUR_HOURS;
+		
+		maximize delta;
+		
+		// Air plane j arrives at the airport in the order of 1, 2, ... n.
+		constraints
+		{			
+			forall (AirPlane plane : airPlanes, :plane.j>0 )
+			{
+				t[plane] >= t[airPlanes.get(plane.j-1)] + delta;
+			}
+		}
+	
+		// Air plane j (j = 1...n) arrives at the airport within the time 
+		// interval [aj ; bj ].
+		constraints
+		{
+			forall (AirPlane plane : airPlanes)
+			{
+				plane.a.toMinutes() <= t [plane];
+				t[plane] <= plane.b.toMinutes() ;
+			}
+		}			
+}
+
+class AirTrafficControlParam
+{
+	List<AirPlane> airPlanes;
+	
+	AirTrafficControlParam(List<AirPlane> airPlanes)
+	{
+		this.airPlanes = airPlanes;
+	}
+	
+}

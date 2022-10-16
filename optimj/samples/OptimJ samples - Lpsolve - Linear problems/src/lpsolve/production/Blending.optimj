@@ -1,0 +1,81 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.production;
+
+/**
+ * Consider the example of a manufacturer of animal feed who is producing feed 
+ * mix for dairy cattle. In our simple example the feed mix contains two active 
+ * ingredients and a filler to provide bulk. One kg of feed mix must contain a minimum 
+ * quantity of each of four nutrients as below:
+ *
+ * Nutrient       A      B     C     D
+ * gram           90     50    20    2
+ *
+ * The ingredients have the following nutrient values and cost
+ *
+ *                         A      B       C       D      Cost/kg
+ * Ingredient 1 (gram/kg)  100    80      40      10     40
+ * Ingredient 2 (gram/kg)  200    150     20      -      60
+ *
+ * What should be the amounts of active ingredients and filler in one kg of feed mix?
+ * 
+ *  Obvious extensions/uses for this model include:
+ *
+ *   increasing the number of nutrients considered
+ *   increasing the number of possible ingredients considered - more ingredients can never increase the overall cost (other things being unchanged), and may lead to a decrease in overall cost
+ *   placing both upper and lower limits on nutrients
+ *   dealing with cost changes
+ *   dealing with supply difficulties
+ *   filler cost
+ *   ...
+ */
+public model Blending solver lpsolve {
+
+	final var double x1 in 0 .. 1; // amount (kg) of ingredient 1 in one kg of feed mix
+	final var double x2 in 0 .. 1; // amount (kg) of ingredient 2 in one kg of feed mix
+	final var double x3 in 0 .. 1; // amount (kg) of filler in one kg of feed mix
+	
+	constraints
+	{
+		// nutrient constraints
+		100*x1 + 200*x2 >= 90; //(nutrient A)
+		80 *x1 + 150*x2 >= 50; //(nutrient B)
+		40 *x1 + 20 *x2 >= 20; //(nutrient C)
+		10 *x1          >= 2;  //(nutrient D)
+		// balancing constraint
+		x1 + x2 + x3 == 1;
+	}
+	
+	// minimize cost
+	minimize 40*x1 + 60*x2;
+	
+	public static void main (String [] args)
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		Blending problem = new Blending();
+		try {
+			problem.extract();
+			if (problem.solve())
+			{
+				// the optimal solution to this problem is
+				// x1= 0.3667, x2=0.2667 and x3=0.3667 				
+				System.out.println("Ingredient 1: "+problem.value(problem.x1));
+				System.out.println("Ingredient 2: "+problem.value(problem.x2));
+				System.out.println("filler: "+problem.value(problem.x3));
+				// minimize cost=30.6667.
+				System.out.println("minimize cost: "+problem.objValue());
+			}
+			else
+			{
+				System.out.println("No solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+	}
+}

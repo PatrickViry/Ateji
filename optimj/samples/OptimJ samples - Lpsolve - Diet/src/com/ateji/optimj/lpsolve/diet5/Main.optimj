@@ -1,0 +1,104 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.optimj.lpsolve.diet5;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+
+import com.ateji.optimj.excel.HSSFArea;
+
+
+public class Main {
+
+	/**
+	 * Runner method.
+	 */
+	public static void main(String args[]) throws  IOException
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		// here we retrieve the model parameters from an Excel sheet
+		
+		// get a workbook from the given file name
+		HSSFWorkbook wb;
+		String filename = getFileName() ;
+		POIFSFileSystem fs = new POIFSFileSystem(new FileInputStream(filename));
+		wb = new HSSFWorkbook(fs);
+		
+		final String[] VTMN = HSSFArea.make(wb, "Vitamins").toStringArray(); 
+		final String[] FOOD = HSSFArea.make(wb, "Foods").toStringArray(); 
+		final double[] cost = HSSFArea.make(wb, "Cost").toDoubleArray();
+		final float[] f_min = HSSFArea.make(wb, "FMin").toFloatArray();
+		final float[] f_max = HSSFArea.make(wb, "FMax").toFloatArray();
+		final float[] n_min = HSSFArea.make(wb, "VMin").toFloatArray();
+		final float[] n_max = HSSFArea.make(wb, "VMax").toFloatArray();
+		final float[][] amt = HSSFArea.transpose(HSSFArea.make(wb, "Amount").toFloatArrayArray());
+
+		final Vitamin[] vitamins = new Vitamin[VTMN.length] ;
+		for(int i=0 ; i<vitamins.length ; i++) {
+			vitamins[i] = new SimpleVitamin(VTMN[i], n_min[i], n_max[i]);
+		}
+		
+		final Food[] foods = new Food[FOOD.length] ;
+		for(int i=0 ; i<foods.length ; i++) {
+			float[Vitamin] vitaminAmounts [vitamins];
+			for(int j=0 ; j<VTMN.length ; j++) {
+				vitaminAmounts[vitamins[j]] =  amt[j][i] ;
+			}
+			foods[i] = new SimpleFood(FOOD[i], cost[i], f_min[i], f_max[i], vitaminAmounts);
+		}
+		
+    	// instanciate the model with these parameters
+		DietModel m = new DietModel(new DietData(vitamins, foods));
+
+		// give the model to lpsolve
+		m.extract();
+
+		// ask lpsolve to solve the model
+		if (m.solve()) {
+			// print the objective value
+			// expected output : 88.2
+			//
+			System.out.println("objective value " + m.objValue());
+
+			// print value of each variable
+			// expected output :
+			// BEEF  0
+			// CHK   0
+			// FISH  0
+			// HAM   0
+			// MCH  46.6667
+			// MTL   0
+			// SPG   0
+			// TUR   0
+			for(Food f : foods) {
+				System.out.println(
+						f + 
+						"  " +
+						m.value(m.Buy[f])
+				);
+			}
+		} else {
+			System.out.println("no solution");
+		}
+		
+		m.dispose();
+	}
+
+	private static String getFileName() {
+		// if the code below does not work, comment it
+		// and hardcode the path to the file
+		char sep = java.io.File.separatorChar ;
+		return System.getProperty("user.dir")+sep+"src"
+		+sep+"com"+sep+"ateji"+sep+"optimj"+sep+"lpsolve"+sep+"diet5"+sep
+		+"The Diet Problem.xls";
+	}
+
+}

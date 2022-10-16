@@ -1,0 +1,27 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.columngeneration;
+
+import java.util.HashSet;
+
+public class Data {
+	private Data(){}
+
+
+	
+	final static int rollWidth = 110;
+
+	
+	final static Order o20 = new Order(20, 48);
+	final static Order o45 = new Order(45, 35);
+	final static Order o50 = new Order(50, 24);
+	final static Order o55 = new Order(55, 10);
+	final static Order o75 = new Order(75, 8); 
+	
+	final static HashSet<Order> orders = {o20, o45, o50, o55, o75};
+	
+	
+
+}

@@ -1,0 +1,57 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package com.ateji.optimj.lpsolve.diet5;
+
+/**
+ * This is the full implementation of the example developed in whitepaper "Object-Oriented Modeling with OptimJ".
+ * 
+ * This fifth version of the diet problem follows
+ * object-oriented programming guidelines: the input data
+ * is now structured according to its meaning.
+ * For instance, the cost of the foods is now a property
+ * of the <code>Food</code> interface.
+ * The <code>method</code> is now contained
+ * in the <code>Main</code> class.
+ */
+public model DietModel extends DietModelParams solver lpsolve
+{
+	
+	/**
+	 *  This constructor takes as parameters the parameters of the model.
+	 */
+	public DietModel(DietData data)
+	{
+		// call to super and keep local reference to the data
+		super(data);
+		// the consistency of the data is ensured by the data structure
+	}
+	
+	// decision variables
+	final var double[Food] Buy[Food f : data.foods] in f.minQuantity() .. f.maxQuantity();
+	
+	// objective function
+	minimize
+		sum {Food f : data.foods} { f.cost() * Buy[f] };
+	
+	// constraints
+	constraints {
+		forall(Vitamin vitamin : data.vitamins) {
+			vitamin.minAmount() <= sum {Food f : data.foods} {f.vitaminAmounts()[vitamin] * Buy[f]};
+			sum {Food f : data.foods} {f.vitaminAmounts()[vitamin] * Buy[f]} <= vitamin.maxAmount();
+		}
+	}
+}
+
+
+class DietModelParams {
+	
+	// parameters
+	final DietData data;
+	
+	public DietModelParams(DietData data) {
+		this.data = data;
+	}
+	
+}

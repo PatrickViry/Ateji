@@ -1,0 +1,100 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.columngeneration;
+
+import java.util.Set;
+import static com.ateji.monoid.Monoids.*;
+
+/**
+  * Column generation is an efficient algorithm for solving larg linear programs.
+ * The main idea is that many linear programs are too large to consider all the 
+ * variables explicitly. Column generation algorithm generates only the variables 
+ * (the column) which have the potential to improve the objective function.
+ * 
+ * The intial problem is split into two problems: the master problem and the sub-problem.
+ * The master problem is the original problem with only a subset of variables being 
+ * considered. The subproblem is a new problem created to generate new variables 
+ * (new columns) from the dual values of the master problems. 
+ */
+public class ColumnGeneration {
+
+
+	final boolean verbose;
+    /** A paper mill has a number of rolls of paper of fixed width */
+	final int rollWidth;
+	
+    /** Customers order different numbers of rolls of various-sized widths*/
+	final Set<Order> orders;
+	
+
+	public ColumnGeneration(int rollWidth, Set<Order> orders) {
+		this.rollWidth       = rollWidth;
+		this.orders          = orders;
+		this.verbose         = false;
+	}
+
+	public ColumnGeneration(int rollWidth, Set<Order> orders, boolean verbose){
+		this.rollWidth       = rollWidth;
+		this.orders          = orders;
+		this.verbose         = verbose;
+	}
+	
+	/** How are you going to cut the rolls*/
+	// cuts is null if method columnGeneration has not been called
+	// cuts is empty if there is no solution
+	Set<Cut> cuts;
+	
+	/**
+	 * Solve the cutting stock problem with a column generation algorithm.
+	 */
+	public void columnGeneration()
+	{
+
+		MasterProblem master = new MasterProblem(rollWidth, orders);
+		// initialize cutting stock master model
+		master.extract();
+		master.solve();
+		
+		if (verbose) {
+			for (Pattern p :master.patterns)
+			System.out.println("initial pattern: "+p);
+		}
+		
+		// is progress being made?
+		while (master.isProgress()) {
+			if (verbose) {
+				System.out.println("master objectiv value= "+master.objValue());
+				System.out.println("------");
+			}
+			// generate a new pattern
+			SubProblem subProblem = new SubProblem(rollWidth, orders, master.getDuals());
+			Pattern newPattern = subProblem.getNewPattern();
+			
+			// will new pattern lead to an improvement?
+			master.addPattern(newPattern);
+			if (verbose) System.out.println("new pattern "+newPattern);
+			// solve cutting stock master model	
+			master.extract();	
+			master.solve();
+			if (verbose) {
+				master.solver().printLp();
+			}
+		} 
+		
+		// A limitation of the method is that the solution may contain fractions, e.g. a pattern should be produced 3.5 times.
+		// This limitation is overcome by solving a MIP problem with the generated patterns.
+		MasterProblem MIPproblem = new MasterProblem(rollWidth, orders, master.patterns);	
+		MIPproblem.extract();
+		MIPproblem.solve();
+		
+		// solution: how are you going to cut the rolls?
+		cuts = `hashSet(){new Cut(p, MIPproblem.value(MIPproblem.getIntegerVariables().get(p))) | Pattern p : MIPproblem.getPatterns(), :MIPproblem.value(MIPproblem.getIntegerVariables().get(p))!=0};
+	}
+	
+	public Set<Cut> getCuts() {
+		return cuts;
+	}
+	
+}

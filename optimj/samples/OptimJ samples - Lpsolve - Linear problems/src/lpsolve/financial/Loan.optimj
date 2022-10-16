@@ -1,0 +1,83 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.financial;
+
+/**
+ * A bank makes four kinds of loans to its personal customers 
+ * and these loans yield the following annual interest rates to the bank:
+ *
+ * First mortgage 14%
+ * Second mortgage 20%
+ * Home improvement 20%
+ * Personal overdraft 10%
+ *
+ * The bank has a maximum foreseeable lending capability of 250 million dolars 
+ * and is further constrained by the policies:
+ *
+ *  1. first mortgages must be at least 55% of all mortgages issued and 
+ *     at least 25% of all loans issued (in £ terms)
+ *  2. second mortgages cannot exceed 25% of all loans issued (in $ terms)
+ *  3. to avoid public displeasure and the introduction of a new windfall 
+ *     tax the average interest rate on all loans must not exceed 15%.
+ *
+ * maximise interest income whilst satisfying the policy limitations.
+ */
+public model Loan solver lpsolve {
+
+	final var double first    in 0 .. 250; // First mortgage. Millon of $
+	final var double second   in 0 .. 250; // Second mortgage. Millon of $
+	final var double home     in 0 .. 250; // Home improvement. Millon of $
+	final var double personal in 0 .. 250; // Personal overdraft. Millon of $
+	
+	constraints
+	{
+		// capability of 250 million dolars
+		first + second + home + personal <= 250;
+		// policy condition 1
+		first >= 0.55*(first + second);
+		first >= 0.25* (first + second + home + personal);
+		// policy condition 2
+		second <= 0.25*(first + second + home + personal);
+		// policy condition 3 
+		0.14*first + 0.20*second + 0.20*home + 0.10*personal <= 
+			0.15*(first + second + home + personal);
+	}
+	
+	// maximize interest income whilst satisfying the policy limitations.
+	maximize 0.14*first + 0.20*second + 0.20*home + 0.10*personal;
+	
+	
+	public static void main (String [] args)
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		Loan problem = new Loan();
+		try {
+			problem.extract();
+			if (problem.solve())
+			{
+				// the optimal solution to this problem is
+				// first= 62.50, second=0, home=100 and personal=87.50 				
+				System.out.println("First mortgages: "+problem.value(problem.first));
+				System.out.println("Second mortgages: "+problem.value(problem.second));
+				System.out.println("Home improvement: "+problem.value(problem.home));
+				System.out.println("Personal overdraft: "+problem.value(problem.personal));
+				// Note here this optimal solution is not unique -
+				// other variable values, e.g. first= 208.33, second=41.67 and 
+				// home=personal=0 also satisfy all the constraints and 
+				// have exactly the same (maximum) solution value of 37.5
+				System.out.println("solution value: "+problem.objValue());
+			}
+			else
+			{
+				System.out.println("No solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+	}
+}

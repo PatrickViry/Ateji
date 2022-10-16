@@ -1,0 +1,65 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.columngeneration;
+
+import java.util.Set;
+
+/**
+ * The subproblem is a new problem created to generate new variables 
+ * (new columns) from the dual values of the master problems. 
+ * 
+ * In solving the cutting stock problem using the column generation algorithm, 
+ * the sub problem is called the Knapsack problem. 
+ *  
+ */
+public model SubProblem extends SubProblemParam solver lpsolve {
+
+	/** use[o] represents the number of required order o to include in the new pattern.*/
+	var int[Order] use[orders] in 0 .. 100000;
+	
+	
+	// Knapsack problem
+	maximize sum{Order i : orders}{duals[i]*use[i]};
+	
+	constraints {
+		sum{Order i : orders}{i.width*use[i]} <= rollWidth;
+	}
+	
+	/**
+	 * TODO
+	 */
+	public Pattern getNewPattern() {
+		extract();
+		solve();
+		int[Order] fill[Order o : orders]= value(use[o]);
+		int wast = rollWidth - sum{fill[o]*o.width | Order o : orders};
+		return new Pattern(wast, fill);
+	}
+	
+	
+	public SubProblem(int rollWidth, Set<Order> items, double[Order] duals)	{
+		super(rollWidth, items, duals);
+	}
+	
+}
+
+class SubProblemParam
+{
+	/** A paper mill has a number of rolls of paper of fixed width */
+	final int rollWidth;
+	
+	/** Customers order different numbers of rolls of various-sized widths*/
+	final Set<Order> orders;
+	
+	/** Duals are the dual costs from of the master problem */
+	final double[Order] duals;
+	
+	SubProblemParam(int rollWidth, Set<Order> orders, double[Order] duals)
+	{
+		this.rollWidth = rollWidth;
+		this.orders = orders;
+		this.duals = duals;
+	}
+}

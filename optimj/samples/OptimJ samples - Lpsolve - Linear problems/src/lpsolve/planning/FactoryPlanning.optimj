@@ -1,0 +1,107 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.planning;
+
+/**
+ * Under normal working conditions a factory produces up to 100 units of a certain 
+ * product in each of four consecutive time periods at costs which vary from period 
+ * to period as shown in the table below.
+ *
+ * Additional units can be produced by overtime working. The maximum quantity and costs
+ * are shown in the table below, together with the forecast demands for the product in
+ * each of the four time periods.
+ *
+ * Time                Demand      Normal       Overtime       Overtime
+ * Period              (units)     Production   Production     Production
+ *                                 Costs        Capacity       Cost    
+ *                                 ($K/unit)    (units)        ($K/unit)
+ * 0                    130            6           60              8
+ * 1                    80             4           65              6
+ * 2                    125            8           70              10
+ * 3                    195            9           60              11
+ *
+ * It is possible to hold up to 70 units of product in store from one period to the 
+ * next at a cost of $1.5K per unit per period. (This figure of $1.5K per unit per 
+ * period is known as a stock-holding cost and represents the fact that we are 
+ * incurring costs associated with the storage of stock).
+ *
+ * It is required to determine the production and storage schedule which will meet 
+ * the stated demands over the four time periods at minimum cost given that at the 
+ * start of period 1 we have 15 units in stock.
+ */
+public model FactoryPlanning solver lpsolve {
+
+	//	xt = number of units produced by normal working in period t (t=0,1,2,3)
+	final var double [] x [4] in 0 .. 100;
+	
+	// yt = number of units produced by overtime working in period t (t=0,1,2,3)
+	private final int[] yMax = {60,65,70,60};
+	final var double [] y [int i : 4] in 0 .. yMax[i]; 
+	
+	// It = number of units in stock at the beginning of period t (t=0,1,2,3,4).	
+	final var double [] I [5] in 0 .. 70;
+	
+	// closing stock = opening stock + production - demand
+	private final int [] demand = {130,80,125,195};
+	constraints
+	{
+		I[0] == 15;
+		forall (int t : 0 .. 3)
+		{
+			I[t+1] == I[t] + (x[t] + y [t]) - demand[t]; 
+		}		
+	}
+	
+	// demand must always be met
+	constraints
+	{
+		forall (int t : 0 .. 3)
+		{
+			I[t] + (x [t] + y [t]) >= demand [t];
+		}
+	}
+	
+	private final int [] xCost = {6,7,8,9};
+	private final int [] yCost = {8,6,10,11};
+	// minimise cost 
+	minimize sum{int t : 0 .. 3}{xCost[t]*x[t]} + 
+			 sum{int t : 0 .. 3}{yCost[t]*y[t]} +
+			 1.5*sum{int t : 0 .. 3}{I[t]} ;
+
+	public static void main (String [] args)
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		FactoryPlanning problem = new FactoryPlanning();
+		try {
+			problem.extract();
+			if (problem.solve())
+			{
+				// the optimal solution to this problem is
+				// x0 = 100, x1 = 85, x2 = 100 and x3 = 100
+				// y0 = 15, y1 = 65, y2 = 0 and y3 = 50.				
+				System.out.println("the company should  produce ");
+				for (int t : 0 .. 3)
+				{
+					System.out.println("  Period "+t+": "+
+								        problem.value(problem.x[t])+" units by normal working "+
+								        problem.value(problem.y[t])+" units by overtime working ("+
+								        problem.value(problem.I[t+1])+" units in stock)"
+								        );
+				}
+				// minimise cost=4150.0
+				System.out.println("minimise cost: "+problem.objValue());
+			}
+			else
+			{
+				System.out.println("No solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+	}
+}

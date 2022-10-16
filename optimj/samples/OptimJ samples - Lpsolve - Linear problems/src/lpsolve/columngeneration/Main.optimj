@@ -1,0 +1,40 @@
+/****************************
+ * Copyright (c) 2009 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.columngeneration;
+
+/**
+ * Column generation is an efficient algorithm for solving larg linear programs.
+ * The main idea is that many linear programs are too large to consider all the 
+ * variables explicitly. Column generation algorithm generates only the variables 
+ * (the column) which have the potential to improve the objective function.
+ * 
+ * The intial problem is split into two problems: the master problem and the sub-problem.
+ * The master problem is the original problem with only a subset of variables being 
+ * considered. The subproblem is a new problem created to generate new variables 
+ * (new columns) from the dual values of the master problems. 
+ * 
+ * The classical example of a problem where this is 
+ * successfully used is the cutting stock problem.
+ */
+public class Main {
+
+	public static void main(String[] args)
+	{
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		ColumnGeneration cutstock = new ColumnGeneration(Data.rollWidth, Data.orders, true);
+		//ColumnGeneration cutstock = new ColumnGeneration(DataFromWikipedia.rollWidth, DataFromWikipedia.orders, true);
+		// Use the column generation algorithm describe above to solve the cutting problem
+		cutstock.columnGeneration();
+		// print the solution i.e. how to cut the rolls
+		System.out.println("Repetition | Contents");
+		for(Cut c : cutstock.getCuts())
+		{
+			System.out.println(c.toString());		
+		}
+		System.out.println("Total "+sum{c.repetition | Cut c : cutstock.getCuts()});
+	}
+}
+

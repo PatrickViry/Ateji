@@ -1,0 +1,264 @@
+/*
+ * Copyright (c) 2007 ATEJI. All rights reserved.
+ */
+package lpsolve.basics;
+
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ *  This sample shows what kind of constraints can be written 
+ *  in OptimJ for lpsolve.
+ *  
+ *  Remember that although the OptimJ language allows any Java expression
+ *  involving decision variables as a constraint, only those that can be 
+ *  understood by the solver (in our case, lpsolve) can be compiled.
+ */
+
+public model DefiningConstraints solver lpsolve
+{
+	/*
+	 *  First let us define some variables (see DefiningDecisionVariables.optimj)
+	 */
+	
+	// imperative variables (classical Java variables, without the 'var' keyword)
+	int i1; // not final because we want to increment i1
+	
+	// a Java collection to be used as domain for decision variables
+	final Set<String> setDomain = new HashSet<String>();
+	{
+		setDomain.add("abc");
+		setDomain.add("def");
+	}
+	
+	// a Java array to be used as domain for decision variables
+	final String [] arrayDomain = new String[]{ "def", "ghi" } ;
+	
+	// decision variables - here we use capital letters to mark
+	// visually the difference with imperative variables
+	final var int I1 in 0 .. 10;
+	final var int I2 in 0 .. 10;
+	final var int I3 in 0 .. 10;
+	final var double D1 in 0 .. 10.0;
+	final var double D2 in 0 .. 10.0;
+	final var String S1 in setDomain;
+	final var String S2 in arrayDomain;
+	
+	
+	/////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 *  Linear constraints over floating point and integer variables.
+	 */
+	
+	constraints
+	{
+		// basic constraints involving addition, substraction
+		// and multiplication with fixed coefficients, where the
+		// comparison operator is one of "==", "<=", ">="
+		2*D1 + 3*D2 + 4*I1 <= 10;
+		4*D1 - 3*D2 + 2*I1 >= 5*I2;
+		3*D1 + 2*D2 - 4*I1 == 3*I2 + 7*D2;
+		
+		// a coefficient can be any Java numeric expression 
+		// not involving decision variables
+		// the expressions 'Math.random()' and 'i1++' will be evaluated 
+		// only once, when creating the constraint
+		Math.random()*D1 + (3*4+5)*D2 - (i1++)*I1 == 0;
+		
+		// multiplying expressions containing decision variables is not allowed,
+		// since the problem would not be linear
+		//   	D1*D2 >= 0; -- error : not a linear constraint
+		
+		// constraints are linearized automatically
+		3*(D1+D2) == 0; // 3*D1 + 3*D2 == 0
+		
+		// an expression not involving any decision variable is not a constraint
+		// 2*i1 == 0; -- error : this is a Java expression that evaluates in a boolean
+	}
+	
+	
+	///////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 *  MIP constraints over integer and set-valued variables.
+	 */
+	
+	constraints
+	{
+		// in addition to the above linear constaints, the "!=" operator is allowed 
+		// on integer expressions
+		I1 != I2;
+		I1 + 2*I2 != I3;
+		
+		// "!=" is implemented using the Big-M technique : OptimJ finds the value of M,
+		// but you need to help getting the smallest possible M by giving tight bounds
+		// on your integer variables. OptimJ reminds you to be careful of possible
+		// numerical instabilities with an information marker (the 'i' symbol in the
+		// left margin)
+		
+		// set-valued variables can be used with "==" and "!="
+		S1 != S2;
+		S1 == S2; // note that S1 and S2 do not need to have the same domain
+		C1 != C2;
+		C1 == C2;
+	}
+
+
+	///////////////////////////////////////////////////////////////////////////
+
+	/*
+	 *  Aggregate sums.
+	 */
+	
+	// A and B are arrays of five decision variables
+	final var int[] A[5] in 0 .. 10;
+	final var int[] B[5] in 0 .. 10;
+	constraints 
+	{
+		// Here are two ways to write the following constraint in a compact form
+		//  0*A[0] + 2*A[1] + 4*A[2] + 6*A[3] + 8*A[4] == 0
+		
+		// The first way is similar to set notation : expression, then generator
+		sum{ (2*i)*A[i] | int i : 0 .. 4 } == 0;
+		
+		// The second way is similar to big-Sigma notation : generator, then expression
+		sum{ int i : 0 .. 4 }{ (2*i)*A[i] } == 0;
+		
+		// Aggregate sums can appear in constraints wherever a sum is allowed.
+		// They can be used with an arbitrary number of generators and filters.
+	}
+	
+
+	///////////////////////////////////////////////////////////////////////////
+
+	/*
+	 *  Defining parameterized groups of constraints.
+	 *  
+	 *  The 'forall' construction defines groups of constraints according
+	 *  to an arbitrary number of generators and filters.
+	 *  
+	 *  The 'if' construction is a shorthand for a 'forall' containing no
+	 *  generator and exactly one filter.
+	 */
+	constraints 
+	{
+		// you can iterate on values
+		forall(int i : 0 .. 4) {
+			A[i] >= 0; 
+		}
+		
+		// and you can also iterate directly on decision variables
+		forall(var int X : A) {
+			X >= 0; // every decision variable present in the array A must be positive
+		}
+		
+		// forall's can use an arbitrary number of generators and filters		
+		forall(int i : 0 .. 4, :i > 2, int j : 0 .. 4, :i > j) {
+			A[i] >= A[j];
+		}
+		
+		// forall's and if's can be arbitrarily nested
+		// the previous statement is equivalent to the following :
+		forall(int i : 0 .. 4) {
+			if(i > 2) {
+				forall(int j : 0 .. 4) {
+					if(i > j) {
+						A[i] >= A[j];
+					}
+				}
+			}
+		}
+		
+		// multiple constraints and constraint groups can be embedded
+		// in a forall
+		forall(int i : 0 .. 4) {
+			forall(int j : 0 .. 2) {
+				B[j] != A[i];
+			}
+			A[i] >= 0;
+			forall(int j : 0 .. 2) {
+				B[j] >= B[i];
+			}
+		}
+	}
+	
+	////////////////////////////////////////////////////////////////////////////
+	
+	/* Global constraints */
+	
+	String name = "SOS";
+	int sostype = 1; 
+	int priority = 1;
+	int count = 2;
+	var int [] sosvars [2] in 0 .. 10;
+	double [] weights [2];
+	{weights [0] = 1; weights [1] = 2;}
+	constraints
+	{
+		lpsolve.addSOS(name, sostype, priority, count, sosvars, weights);
+	}	
+	
+	///////////////////////////////////////////////////////////////////////////
+
+	/*
+	 *  Object-oriented modeling.
+	 *  
+	 *  While models in optimization textbooks are often based on arrays,
+	 *  the actual data from your application is likely to be stored in
+	 *  objects. OptimJ makes it possible to use these objects directly
+	 *  when stating constraints.
+	 */
+	
+	// let us first define a domain and decision variables with a user-defined type
+	// (class Country is defined below)
+	final Set<Country> countries = new HashSet<Country>();
+	{
+		countries.add(Country.luxembourg);
+		countries.add(Country.belgium);
+	}
+
+	final var Country C1 in countries, C2 in countries; 
+
+
+	constraints 
+	{
+		// Object-oriented artifacts, such as referencing fields and
+		// invoking methods, can be used anywhere a Java expression
+		// is allowed.
+		Country.luxembourg.area * D1 <= Country.luxembourg.area * D2;
+		Country.luxembourg.density() * D1 <= Country.luxembourg.density() * D2;
+		
+		// You can also define decision variables whose domain is of 
+		// an object type and state constraints in terms of fields and methods.
+		// In the following constraints, the decision variables are of type
+		// var Country. 		
+		C1.area >= C2.area;
+		C1.density() >= C2.density(); 
+	}
+}
+
+/**
+ *  A sample class used to demonstrate object-valued decision variables.
+ */
+class Country
+{
+	final String name;
+	final int population;
+	final double area;
+
+	Country(String name, int population, double area)
+	{
+		this.name = name;
+		this.population = population;
+		this.area = area;
+	}
+	
+	double density()
+	{
+		return population / area;
+	}
+	
+	static Country luxembourg = new Country("Luxembourg", 455000, 2586.0);
+	static Country belgium = new Country("Belgium", 10392226, 30528.0);
+}

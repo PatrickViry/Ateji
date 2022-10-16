@@ -1,0 +1,110 @@
+/****************************
+ * Copyright (c) 2007 ATEJI *
+ * All rights reserved.     *
+ ****************************/
+package lpsolve.network;
+
+/**
+ * 
+ * See TransportationProblem for the initial problem.
+ * 
+ * Frequently goods are not transported directly from factories to customers but are 
+ * shipped (transhipped) via intermediate locations (such as depots or warehouses). 
+ * For example suppose we take the problem we considered above and add the additional 
+ * information that a new depot has become available where:
+ *
+ * the depot has a cost per ton of throughput of $0.7
+ * the cost of shipping from factories A, B and C to the depot is 0.1, 0.3 and 0.7 
+ * 		($ per ton) respectively
+ * the cost of shipping from the depot to customers 1, 2, 3, 4, 5 and 6 is 0.7, 0.9,
+ *  	1.1, 0.8, 0.6 and 0.9 ($ per ton) respectively.
+ *
+ * Here we have added to the graph shown by TransportationProblem:
+ *
+ * two new nodes (labelled D1 and D2 below) - D1 representing goods in to the depot 
+ *     (the "front door") and D2 representing goods out of the depot (the "back door")
+ * an arc between D1 and D2 with capacity equal to the total factory capacity 
+ * 		(representing the maximum amount of throughput that can reach the depot 
+ * 		 from the factories) and cost 0.7 (representing the cost of throughput)
+ * arcs from the sources (factories) to D1 of capacity equal to the factory production 
+ * 		capacity and cost equal to the combined production and transportation (factory
+ * 		to depot) cost, i.e.
+ *           arc A,D1 capacity 60 cost 11.3 + 0.1 = 11.4
+ *           arc B,D1 capacity 70 cost 11.0 + 0.3 = 11.3
+ *           arc C,D1 capacity 80 cost 10.8 + 0.7 = 11.5
+ * arcs from D2 to the customers of capacity equal to the customer demand and cost 
+ * 		equal to the cost of shipping from the depot to the customer, i.e.
+ *          arc D2,0 capacity 40 cost 0.7
+ *          arc D2,1 capacity 35 cost 0.9
+ *          arc D2,2 capacity 25 cost 1.1
+ *          arc D2,3 capacity 20 cost 0.8
+ *          arc D2,4 capacity 60 cost 0.6
+ *          arc D2,5 capacity 30 cost 0.9
+ */
+public class TranshipmentProblem {
+	
+	Network data = TransportationProblem.data;
+	
+	public static void main (String [] args)
+	{	
+		com.ateji.optimj.lpsolvelib.LibraryLoader.load();
+		
+		Network data = TransportationProblem.data;
+
+		// Add new nodes
+		Depot D1 = new Depot("D1");
+		Depot D2 = new Depot("D2");
+
+		data.nodes.add(D1);
+		data.nodes.add(D2);
+
+		// Add new arc
+
+		Arc D1D2 = new Arc(D1,D2,0.7,210);
+		data.arcs.add(D1D2);
+
+		data.arcs.add(new Arc(TransportationProblem.A,D1,11.4,60));			
+		data.arcs.add(new Arc(TransportationProblem.B,D1,11.3,70));			
+		data.arcs.add(new Arc(TransportationProblem.C,D1,11.5,80));
+
+		data.arcs.add(new Arc(D2,TransportationProblem.C0,0.7,40));
+		data.arcs.add(new Arc(D2,TransportationProblem.C1,0.9,35));
+		data.arcs.add(new Arc(D2,TransportationProblem.C2,1.1,25));
+		data.arcs.add(new Arc(D2,TransportationProblem.C3,0.8,20));
+		data.arcs.add(new Arc(D2,TransportationProblem.C4,0.6,60));
+		data.arcs.add(new Arc(D2,TransportationProblem.C5,0.9,30));			
+		
+
+		
+		// total cost: 2676.5
+		
+		// Solution 1:  It can be seen that 155 units flows through the depot.		
+		// Solution 2:  It can be seen that 115 units flows through the depot.
+		
+		
+				
+		MinimumCostNetworkFlows problem = new MinimumCostNetworkFlows(data);
+		try
+		{			
+			problem.extract();
+			if (problem.solve()){
+				System.out.println("total cost: "+problem.objValue());				
+				System.out.println("It can be seen that "+problem.value(problem.x[D1D2])+" units flows through the depot.");	
+			}
+			else
+			{
+				System.out.println("no solution.");
+			}
+		}
+		finally
+		{
+			problem.dispose();
+		}
+	}
+}
+
+class Depot extends Node
+{
+	// net flow generated at a depot: 0
+	Depot(String id){super(id,0);}
+}
